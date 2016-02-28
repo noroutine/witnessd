@@ -1,10 +1,13 @@
 .PHONY: all
 
-all: build test
+all: dep build test
 
 build: dominion
 
-dominion: dominion.go
+dep:
+	go get -t ./...
+
+dominion: *.go
 	go build
 
 test:
