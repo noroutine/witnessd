@@ -1,13 +1,4 @@
-// Copyright 2010-2014 go-readline authors.  All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 package main
-
-// This example demonstrates how to create a simple readline application
-// that allows you to tab-complete single letters with the various words
-// used in phonetic alphabets. See:
-// http://usmilitary.about.com/od/theorderlyroom/a/alphabet.htm
 
 import (
 	"fmt"
@@ -16,33 +7,11 @@ import (
 	"github.com/fiorix/go-readline"
 )
 
+const version string = "0.0.1"
+const description = "Dominion " + version
+
 var phoneticAlphabet = map[string][]string{
-	"a": {"Alpha", "Able", "Affirmative", "Afirm"},
-	"b": {"Bravo", "Boy", "Baker"},
-	"c": {"Charlie", "Cast"},
-	"d": {"Delta", "Dog"},
-	"e": {"Echo", "Easy"},
-	"f": {"Foxtrot", "Fox"},
-	"g": {"Golf", "George"},
-	"h": {"Hotel", "Have", "Hypo", "How"},
-	"i": {"India", "Item", "Interrogatory", "Int", "Item"},
-	"j": {"Juliett", "Jig"},
-	"k": {"Kilo", "King"},
-	"l": {"Lime", "Love"},
-	"m": {"Mike"},
-	"n": {"November", "Nan", "Negative", "Negat"},
-	"o": {"Oscar", "Oboe", "Option", "Oboe"},
-	"p": {"Papa", "Pup", "Preparatory", "Prep", "Peter"},
-	"q": {"Quebec", "Quack", "Queen"},
-	"r": {"Romeo", "Rush", "Roger"},
-	"s": {"Sierra", "Sail", "Sugar"},
-	"t": {"Tango", "Tare"},
-	"u": {"Uniform", "Unit", "Uncle"},
-	"v": {"Victor", "Vice"},
-	"w": {"Whiskey", "Watch", "William"},
-	"x": {"X-ray"},
-	"y": {"Yankee", "Yoke"},
-	"z": {"Zulu", "Zed", "Zebra"},
+	"e": {"exit"},
 }
 
 func completer(input, line string, start, end int) []string {
@@ -56,7 +25,7 @@ func completer(input, line string, start, end int) []string {
 }
 
 func main() {
-	prompt := "> "
+	prompt := description + "> "
 
 	readline.SetCompletionFunction(completer)
 
