@@ -14,7 +14,6 @@ import (
 
 const version = "0.0.1"
 const description = "Dominion " + version
-const serviceName = "Dominion Player"
 const serviceType = "_dominion._tcp"
 const domain = "local."
 const servicePort = 9999
@@ -23,6 +22,7 @@ var phoneticAlphabet = map[string][]string{
 	"e": {"exit"},
 	"r": {"register"},
 	"l": {"list"},
+	"n": {"name"},
 	"h": {"help"},
 }
 
@@ -62,9 +62,9 @@ L:
     }
 }
 
-func service_register() {
+func service_register(name string) {
 	// Run registration (blocking call)
-    _, err := bonjour.Register(serviceName, serviceType, "", servicePort, []string{"txtv=1", "app=test"}, nil)
+    _, err := bonjour.Register(name, serviceType, "", servicePort, []string{"txtv=1", "app=test"}, nil)
     if err != nil {
         log.Fatalln(err.Error())
     }
@@ -72,7 +72,7 @@ func service_register() {
 }
 
 func show_help() {
-	fmt.Printf("Commands: help, list. register, exit\n")
+	fmt.Printf("Commands: help, name, list. register, exit\n")
 }
 
 func main() {
@@ -88,8 +88,11 @@ func main() {
 	    }
 	}(handler)
 
+	name := "Dominion Player"
+
 	log.Println(description, "started")
-	prompt := description + "> "
+	
+	prompt := name + "> "
 
 	readline.SetCompletionFunction(completer)
 
@@ -109,9 +112,18 @@ L:
 		case *result == "list":
 			service_list()
 		case *result == "register":
-			service_register()
+			service_register(name)
 		case *result == "help" || *result == "":
 			show_help()
+		case strings.HasPrefix(*result, "name"):
+			name_args := strings.Fields(*result)
+			if len(name_args) > 1 {
+				name = name_args[1]
+				fmt.Println("You are now", name)
+				prompt = name + "> "
+			} else {
+				fmt.Println(name)
+			}			
 		default:
 			fmt.Printf("Unknown command '%s', try 'help'\n", *result)
 			continue
