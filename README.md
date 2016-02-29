@@ -3,6 +3,6 @@
 Dominion P2P Protocol
 =====
 
-Dominion P2P protocol is designed to allow 2-6 players enjoy the game without centrilized server.
+Dominion P3P protocol is designed to allow 2-6 players enjoy the game without centralized server.
 
 [More about the Dominion](https://en.wikipedia.org/wiki/Dominion_(card_game))

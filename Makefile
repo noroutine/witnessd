@@ -12,3 +12,4 @@ dominion: *.go
 
 test:
 	go test -v ./...
+	cat sample.dominion | ./dominion
