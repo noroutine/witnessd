@@ -114,15 +114,20 @@ func main() {
 	// This is generally what people expect in a modern Readline-based app
 	readline.ParseAndBind("TAB: menu-complete")
 
+
+	var sleepCmd = "sleep"
 	// Loop until Readline returns nil (signalling EOF)
-L:
+	iteration := 0
+L:	
 	for {
-		result := readline.Readline(&prompt)
+		// result := readline.Readline(&prompt)
+		result := &sleepCmd
 		switch {
 		case result == nil:
 			fmt.Println()
 			break L // exit loop
 		case *result == "exit":
+			fmt.Println(prompt)
 			break L // exit loop
 		case *result == "list":
 			service_list()
@@ -130,6 +135,9 @@ L:
 			service_register(name)
 		case *result == "help" || *result == "":
 			show_help()
+		case *result == "sleep":
+			fmt.Println("Round", iteration)
+			time.Sleep(5 * time.Second)
 		case strings.HasPrefix(*result, "name"):
 			name_args := strings.Fields(*result)
 			if len(name_args) > 1 {
@@ -144,5 +152,6 @@ L:
 			continue
 		}
 		readline.AddHistory(*result) // Allow user to recall this line
+		iteration++
 	}
 }

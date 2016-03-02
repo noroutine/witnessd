@@ -4,15 +4,9 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get -qq install libreadline-dev
 
+script: 
+  - make
+  - make push-container
+
 go:
   - 1.6
-
-deploy:
-    provider: gae
-    # Skip cleanup so api_key.py and vendored dependencies are still there
-    skip_cleanup: true
-    keyfile: gcp-credentials.json
-    project: dominion-p2p
-    default: true
-    on:
-        all_branches: true
