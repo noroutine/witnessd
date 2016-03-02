@@ -5,4 +5,12 @@ Dominion P2P Protocol
 
 Dominion P2P protocol is designed to allow 2-6 players enjoy the game without centralized server.
 
-More about the Dominion](https://en.wikipedia.org/wiki/Dominion_(card_game))
+[More about the Dominion](https://en.wikipedia.org/wiki/Dominion_(card_game))
+
+Usage
+===
+
+    make
+    ./dominion
+    
+You will end up in CLI, while in background also HTTP interface starts at port 5000
