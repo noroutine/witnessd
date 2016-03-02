@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/noroutine/dominion.svg?branch=master)](https://travis-ci.org/noroutine/dominion) [![Build Status](https://drone.io/github.com/noroutine/dominion/status.png)](https://drone.io/github.com/noroutine/dominion/latest)
+[![Build Status](https://travis-ci.org/noroutine/dominion.svg?branch=master)](https://travis-ci.org/noroutine/dominion) [![Build Status](https://drone.io/github.com/noroutine/dominion/status.png)](https://drone.io/github.com/noroutine/dominion/latest) [![Circle CI](https://circleci.com/gh/noroutine/dominion.svg?style=svg)](https://circleci.com/gh/noroutine/dominion)
 
 Dominion P2P Protocol
 =====
