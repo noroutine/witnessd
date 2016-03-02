@@ -19,8 +19,7 @@ test:
 container: build
 	./prepare_docker.sh
 
-push-container: container
-
+push-container:
 	docker tag dominion gcr.io/dominion-p2p/dominion:${TAG}
 	./deploy_gcp.sh ${TAG}
 	

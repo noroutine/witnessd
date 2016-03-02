@@ -1,3 +1,13 @@
+machine:
+  services:
+    - docker
 test:
   post:
-    - make push-container
+    - make container
+
+deployment:
+  prod:
+    branch: master
+    commands:
+      - make push-container
+
