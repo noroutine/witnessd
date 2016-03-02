@@ -1,4 +1,4 @@
-package dominion
+package main
 
 import (
 	"fmt"
@@ -83,11 +83,13 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
-	})
+	go func() {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+		})
 
-	log.Fatal(http.ListenAndServe(":5000", nil))
+		log.Fatal(http.ListenAndServe(":5000", nil))
+	}()
 
     // Ctrl+C handling, doesn't work properly
     handler := make(chan os.Signal, 1)

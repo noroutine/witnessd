@@ -1,4 +1,4 @@
-package dominion
+package main
 
 import (
 	"testing"
