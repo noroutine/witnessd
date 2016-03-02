@@ -10,7 +10,7 @@ box: golang
 
 # You can also use services such as databases. Read more on our dev center:
 # http://devcenter.wercker.com/docs/services/index.html
-# services:
+services:
     # - postgres
     # http://devcenter.wercker.com/docs/services/postgresql.html
 
@@ -37,8 +37,9 @@ build:
     - script:
         name: push it
         code: |
-          make push-container
-          
+          echo "Wercker cannot do this: http://devcenter.wercker.com/docs/faq/can-i-build-dockerfiles.html"
+          echo "make push-container skipped"
+
     # # Build the project
     # - script:
     #     name: go build
