@@ -25,7 +25,9 @@ build:
     # Sets the go workspace and places you package
     # at the right place in the workspace tree
     - setup-go-workspace
-
+    - install-packages:
+        packages: libreadline-dev
+        
     # Gets the dependencies
     - script:
         name: do it
