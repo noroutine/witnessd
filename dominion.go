@@ -1,10 +1,12 @@
-package main
+package dominion
 
 import (
 	"fmt"
 	"log"
 	"os"
 	"time"
+	"net/http"
+	"html"
 	"os/signal"
 	"strings"
 
@@ -75,7 +77,18 @@ func show_help() {
 	fmt.Printf("Commands: help, name, list. register, exit\n")
 }
 
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, %q!!!", html.EscapeString(r.URL.Path))
+}
+
 func main() {
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+	})
+
+	log.Fatal(http.ListenAndServe(":5000", nil))
+
     // Ctrl+C handling, doesn't work properly
     handler := make(chan os.Signal, 1)
     signal.Notify(handler, os.Interrupt)
