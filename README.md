@@ -1,4 +1,8 @@
-[![Build Status](https://travis-ci.org/noroutine/dominion.svg?branch=master)](https://travis-ci.org/noroutine/dominion) [![Build Status](https://drone.io/github.com/noroutine/dominion/status.png)](https://drone.io/github.com/noroutine/dominion/latest) [![Circle CI](https://circleci.com/gh/noroutine/dominion.svg?style=svg)](https://circleci.com/gh/noroutine/dominion) [![wercker status](https://app.wercker.com/status/3f2898a9d294d61a7b7bae8b7ab04df0/s/master "wercker status")](https://app.wercker.com/project/bykey/3f2898a9d294d61a7b7bae8b7ab04df0)
+Circle [![Circle CI](https://circleci.com/gh/noroutine/dominion.svg?style=svg)](https://circleci.com/gh/noroutine/dominion)
+
+dron.io: [![Build Status](https://drone.io/github.com/noroutine/dominion/status.png)](https://drone.io/github.com/noroutine/dominion/latest) Wercker: [![wercker status](https://app.wercker.com/status/3f2898a9d294d61a7b7bae8b7ab04df0/s/master "wercker status")](https://app.wercker.com/project/bykey/3f2898a9d294d61a7b7bae8b7ab04df0) Travis: [![Build Status](https://travis-ci.org/noroutine/dominion.svg?branch=master)](https://travis-ci.org/noroutine/dominion)
+
+
 
 Dominion P2P Protocol
 =====

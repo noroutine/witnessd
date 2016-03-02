@@ -6,7 +6,7 @@ before_install:
 
 script: 
   - make
-  - make push-container
+#  - make container push-container
 
 go:
   - 1.6
