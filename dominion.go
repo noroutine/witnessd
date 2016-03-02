@@ -9,12 +9,13 @@ import (
 	"html"
 	"os/signal"
 	"strings"
+	"os/exec"
 
 	"github.com/fiorix/go-readline"
 	"github.com/noroutine/bonjour"
 )
 
-const version = "0.0.1"
+const version = "0.0.7"
 const description = "Dominion " + version
 const serviceType = "_dominion._tcp"
 const domain = "local."
@@ -78,14 +79,29 @@ func show_help() {
 }
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %q!!!", html.EscapeString(r.URL.Path))
+
+	fmt.Fprintf(w, "Hello, %q!!!\n", html.EscapeString(r.URL.Path))
+
+	out, err := exec.Command("/bin/hostname").Output()
+	log.Printf("Running command")
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		fmt.Fprintf(w, "%s", out)
+	}
 }
 
 func main() {
 
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+			out, err := exec.Command("/bin/hostname").Output()
+			log.Printf("Running command")
+			if err != nil {
+				log.Fatal(err)
+			} else {
+				fmt.Fprintf(w, "Hello, %q from %s\n", html.EscapeString(r.URL.Path), out)
+			}			
 		})
 
 		log.Fatal(http.ListenAndServe(":5000", nil))

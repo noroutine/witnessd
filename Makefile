@@ -1,6 +1,6 @@
 .PHONY: all
 
-TAG=v0.0.6
+TAG=v0.0.7
 
 all: dep build test
 
