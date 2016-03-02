@@ -33,7 +33,12 @@ build:
         name: do it
         code: |
           make
-
+    
+    - script:
+        name: push it
+        code: |
+          make push-container
+          
     # # Build the project
     # - script:
     #     name: go build
