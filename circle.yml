@@ -5,6 +5,12 @@ test:
   post:
     - make container
 
+dependencies:
+  pre:
+    - go get github.com/tools/godep
+  override:
+    - godep restore
+
 deployment:
   prod:
     branch: master
