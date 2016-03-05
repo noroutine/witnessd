@@ -1,4 +1,3 @@
-.PHONY: all
 
 TAG=v0.0.7
 
