@@ -1,0 +1,12 @@
+{
+  "name": "dominion",
+  "description": "Dominion P2P",
+  "keywords": [
+    "go",
+    "dominion",
+  ],
+  "image": "heroku/go:1.6",
+  "mount_dir": "src/github.com/noroutine/dominion",
+  "website": "http://github.com/noroutine/dominion",
+  "repository": "http://github.com/noroutine/dominion"
+}
