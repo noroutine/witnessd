@@ -11,7 +11,7 @@ import (
 	"strings"
 	"os/exec"
 
-	"github.com/fiorix/go-readline"
+	"github.com/noroutine/go-readline"
 	"github.com/noroutine/bonjour"
 )
 
@@ -43,7 +43,7 @@ func service_list() {
     resolver, err := bonjour.NewResolver(nil)
     if err != nil {
         log.Println("Failed to initialize resolver:", err.Error())
-        return
+   	     return
     }
 
     results := make(chan *bonjour.ServiceEntry)
