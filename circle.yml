@@ -1,6 +1,9 @@
 machine:
   services:
     - docker
+  go:
+    version: 1.6
+    
 test:
   post:
     - make container
