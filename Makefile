@@ -7,19 +7,23 @@ all: dep build test
 build: dominion
 
 dep:
-	go get -t ./...
+# 	go get -t ./...
+	go get github.com/tools/godep
+	godep restore
 
 dominion: *.go
-	go build
+	godep go build
 
 test:
-	go test -v ./...
-	# cat sample.dominion | ./dominion
+	godep go test -v ./...
+
+run:
+	godep go run
 
 container: build
 	./prepare_docker.sh
 
-push-container:
+push-container: container
 	docker tag dominion gcr.io/dominion-p2p/dominion:${TAG}
 	./deploy_gcp.sh ${TAG}
 	

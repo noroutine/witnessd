@@ -1,22 +1,22 @@
 machine:
   services:
     - docker
-  go:
-    version: 1.6
-    
-test:
+
+checkout:
   post:
-    - make container
+    - git submodule sync
+    - git submodule update --init
 
 dependencies:
-  pre:
-    - go get github.com/tools/godep
   override:
-    - godep restore
+    - make dep
+
+test:
+  override:
+    - make test
 
 deployment:
   prod:
     branch: master
     commands:
       - make push-container
-
