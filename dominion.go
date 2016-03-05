@@ -96,11 +96,10 @@ func main() {
 	go func() {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			out, err := exec.Command("/bin/hostname").Output()
-			log.Printf("Running command")
 			if err != nil {
 				log.Fatal(err)
 			} else {
-				fmt.Fprintf(w, "Hello, %q from %s\n", html.EscapeString(r.URL.Path), out)
+				fmt.Fprintf(w, "Improved hello, %q from %s\n", html.EscapeString(r.URL.Path), out)
 			}			
 		})
 
