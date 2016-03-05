@@ -2,15 +2,15 @@ machine:
   services:
     - docker
 
-  post:
-    - bash ./install_go.sh
-
 checkout:
   post:
     - git submodule sync
     - git submodule update --init
 
 dependencies:
+  pre:
+    - bash ./circle_install_go.sh
+    
   override:
     - make dep
 
