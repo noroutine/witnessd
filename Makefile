@@ -5,7 +5,6 @@ all: dep build test
 build: dominion
 
 dep:
-# 	go get -t ./...
 	go get github.com/tools/godep
 	godep restore
 
@@ -13,7 +12,7 @@ dominion: dep *.go
 	godep go build
 
 test:
-	godep go test -v ./...
+	godep go test
 
 run:
 	godep go run
