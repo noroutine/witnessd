@@ -9,7 +9,7 @@ dep:
 	go get github.com/tools/godep
 	godep restore
 
-dominion: *.go
+dominion: dep *.go
 	godep go build
 
 test:
