@@ -18,7 +18,6 @@ const serviceType = "_dominion._tcp"
 const domain = "local."
 const servicePort = 9999
 
-
 func service_list() {
     resolver, err := bonjour.NewResolver(nil)
     if err != nil {
