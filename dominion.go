@@ -54,10 +54,6 @@ func service_register(name string) {
     log.Printf("Registered")
 }
 
-func show_help() {
-	
-}
-
 func main() {
 
 	port := os.Getenv("PORT")
@@ -83,8 +79,9 @@ func main() {
 		}
 	}()
 
-	repl.EmptyHandler = func() {
+	repl.EmptyHandler = func() {		
 		fmt.Println("Feeling lost? Try 'help'")
+		repl.EmptyHandler = nil
 	}
 	
 	repl.Register("list", func(args []string) {
@@ -109,6 +106,7 @@ func main() {
 			name = args[0]
 			fmt.Println("You are now", name)
 			repl.Prompt = name + "> "
+			client.PlayerId = name
 		} else {
 			fmt.Println(name)
 		}
