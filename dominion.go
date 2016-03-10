@@ -5,14 +5,12 @@ import (
 	"log"
 	"os"
 	"time"
-	"net/http"
-	"html"
-	"os/signal"
 	"strings"
-	"os/exec"
+	"os/signal"
 
-	"github.com/noroutine/go-readline"
 	"github.com/noroutine/bonjour"
+	"github.com/noroutine/dominion/protocol"
+	"github.com/noroutine/dominion/cli"
 )
 
 const version = "0.0.7"
@@ -21,29 +19,12 @@ const serviceType = "_dominion._tcp"
 const domain = "local."
 const servicePort = 9999
 
-var phoneticAlphabet = map[string][]string{
-	"e": {"exit"},
-	"r": {"register"},
-	"l": {"list"},
-	"n": {"name"},
-	"h": {"help"},
-}
-
-func completer(input, line string, start, end int) []string {
-	if len(input) == 1 {
-		letters, exists := phoneticAlphabet[strings.ToLower(input)]
-		if exists {
-			return letters
-		}
-	}
-	return []string{}
-}
 
 func service_list() {
     resolver, err := bonjour.NewResolver(nil)
     if err != nil {
         log.Println("Failed to initialize resolver:", err.Error())
-   	     return
+   	    return
     }
 
     results := make(chan *bonjour.ServiceEntry)
@@ -75,42 +56,20 @@ func service_register(name string) {
 }
 
 func show_help() {
-	fmt.Printf("Commands: help, name, list. register, exit\n")
-}
-
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-
-	fmt.Fprintf(w, "Hello, %q!!!\n", html.EscapeString(r.URL.Path))
-
-	out, err := exec.Command("/bin/hostname").Output()
-	log.Printf("Running command")
-	if err != nil {
-		log.Fatal(err)
-	} else {
-		fmt.Fprintf(w, "%s", out)
-	}
+	
 }
 
 func main() {
 
-	go func() {
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			out, err := exec.Command("/bin/hostname").Output()
-			if err != nil {
-				log.Fatal(err)
-			} else {
-				fmt.Fprintf(w, "Improved hello, %q from %s\n", html.EscapeString(r.URL.Path), out)
-			}			
-		})
+	port := os.Getenv("PORT")
+	name := "Dominion Player"
 
-		port := os.Getenv("PORT")
+	if port == "" {
+		port = fmt.Sprintf("%d", servicePort)
+	}
 
-		if port == "" {
-			port = "5000"
-		}
-
-		log.Fatal(http.ListenAndServe(":" + port, nil))
-	}()
+	client := &protocol.Client{ ":" + port, name }
+	go client.Serve()
 
     // Ctrl+C handling, doesn't work properly
     handler := make(chan os.Signal, 1)
@@ -124,55 +83,40 @@ func main() {
 	    }
 	}(handler)
 
-	name := "Dominion Player"
+	repl := cli.New()
+	repl.Description = description
+	repl.Prompt = name + "> "
 
-	log.Println(description, "started")
-	
-	prompt := name + "> "
-
-	readline.SetCompletionFunction(completer)
-
-	// This is generally what people expect in a modern Readline-based app
-	readline.ParseAndBind("TAB: menu-complete")
-
-
-	var sleepCmd = "sleep"
-	// Loop until Readline returns nil (signalling EOF)
-	iteration := 0
-L:	
-	for {
-		// result := readline.Readline(&prompt)
-		result := &sleepCmd
-		switch {
-		case result == nil:
-			fmt.Println()
-			break L // exit loop
-		case *result == "exit":
-			fmt.Println(prompt)
-			break L // exit loop
-		case *result == "list":
-			service_list()
-		case *result == "register":
-			service_register(name)
-		case *result == "help" || *result == "":
-			show_help()
-		case *result == "sleep":
-			fmt.Println("Round", iteration)
-			time.Sleep(5 * time.Second)
-		case strings.HasPrefix(*result, "name"):
-			name_args := strings.Fields(*result)
-			if len(name_args) > 1 {
-				name = name_args[1]
-				fmt.Println("You are now", name)
-				prompt = name + "> "
-			} else {
-				fmt.Println(name)
-			}			
-		default:
-			fmt.Printf("Unknown command '%s', try 'help'\n", *result)
-			continue
-		}
-		readline.AddHistory(*result) // Allow user to recall this line
-		iteration++
+	repl.EmptyHandler = func() {
+		fmt.Println("Feeling lost? Try 'help'")
 	}
+	
+	repl.Register("list", func(args []string) {
+		service_list()
+	})
+
+	repl.Register("register", func(args []string) {
+		service_register(name)
+	})
+
+	repl.Register("help", func(args []string) {
+		fmt.Printf("Commands: %s\n", strings.Join(repl.GetKnownCommands(), ", "))
+	})
+
+	repl.Register("sleep", func(args []string) {
+		fmt.Println("Sleeping for 5 seconds...")
+		time.Sleep(5 * time.Second)
+	})
+
+	repl.Register("name", func(args []string) {
+		if len(args) > 0{
+			name = args[0]
+			fmt.Println("You are now", name)
+			repl.Prompt = name + "> "
+		} else {
+			fmt.Println(name)
+		}
+	})
+
+	repl.Serve()
 }
