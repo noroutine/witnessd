@@ -4,6 +4,8 @@ import (
 	"log"
 	"fmt"
 	"strings"
+	"os"
+	"os/signal"
 	"github.com/noroutine/go-readline"
 )
 
@@ -12,7 +14,8 @@ type HandlerFunc func([]string)
 type REPL struct {
 	Description string
 	Prompt string
-	EmptyHandler func()
+	Signals chan os.Signal
+	EmptyHandler func()	
 	handlers map[string]HandlerFunc
 }
 
@@ -20,6 +23,7 @@ func New() *REPL {
 	return &REPL{
 		"", 
 		"> ",
+		make(chan os.Signal, 1),
 		nil,
 		map[string]HandlerFunc{},
 	}
@@ -80,8 +84,21 @@ func (self *REPL) Serve() {
 		return completions
 	})
 
+    // Ctrl+C handling, doesn't work properly
+    int_ch := make(chan os.Signal, 1)
+    signal.Notify(int_ch, os.Interrupt)
+    go func(ch chan os.Signal) {
+    	for s := range ch {
+	    	self.Signals <- s
+	    	readline.CleanupAfterSignel()
+    	}
+	}(int_ch)
+
 	// This is generally what people expect in a modern Readline-based app
 	readline.ParseAndBind("TAB: menu-complete")
+
+	readline.SetCatchSignals(0)
+	readline.ClearSignals()
 
 L:	
 	for {

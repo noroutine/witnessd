@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 	"strings"
-	"os/signal"
 
 	"github.com/noroutine/bonjour"
 	"github.com/noroutine/dominion/protocol"
@@ -71,21 +70,18 @@ func main() {
 	client := &protocol.Client{ ":" + port, name }
 	go client.Serve()
 
-    // Ctrl+C handling, doesn't work properly
-    handler := make(chan os.Signal, 1)
-    signal.Notify(handler, os.Interrupt)
-    go func(handler chan os.Signal) {
-    	for sig := range handler {
-	        if sig == os.Interrupt {
-	        	log.Printf("Interrupted")
-	            os.Exit(0)
-	        }
-	    }
-	}(handler)
-
 	repl := cli.New()
 	repl.Description = description
 	repl.Prompt = name + "> "
+
+	go func() {
+		for s := range repl.Signals {
+			if s == os.Interrupt {
+		    	log.Printf("Interrupted")
+				os.Exit(0)
+			}
+		}
+	}()
 
 	repl.EmptyHandler = func() {
 		fmt.Println("Feeling lost? Try 'help'")
