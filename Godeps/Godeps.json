@@ -12,7 +12,7 @@
 		},
 		{
 			"ImportPath": "github.com/noroutine/go-readline",
-			"Rev": "488363a2f2cef139eec4043b5fcc1f7e12a49df9"
+			"Rev": "03db8e3d37c9f90fc484b30d943968de7fe1e5fd"
 		},
 		{
 			"ImportPath": "golang.org/x/net/internal/iana",
