@@ -1,5 +1,7 @@
 TAG=v0.0.7
 
+.PHONY: all
+
 all: dep build test
 
 build: dominion
