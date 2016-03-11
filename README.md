@@ -8,14 +8,20 @@
 
 [![Run Status](https://api.shippable.com/projects/56e21e429d043da07bb60188/badge?branch=master)](https://app.shippable.com/projects/56e21e429d043da07bb60188)
 
-Dominion P2P Protocol
+Dominion Client
 =====
 
-Dominion P2P protocol is designed to allow 2-6 players enjoy the game without centralized server.
+Dominion client implements P2P protocol designed to allow 2-6 players enjoy the game without centralized server.
+
+
+How to Use
+=====
+
+Write your own AI that communicates with this client or play yourself via CLI
 
 [More about the Dominion](https://en.wikipedia.org/wiki/Dominion_(card_game))
 
-Usage
+How to Build
 ===
 
     make
