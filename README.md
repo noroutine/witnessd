@@ -10,6 +10,8 @@
 
 [![Issue Count](https://codeclimate.com/github/noroutine/dominion/badges/issue_count.svg)](https://codeclimate.com/github/noroutine/dominion)
 
+[![Gitter](https://badges.gitter.im/turbovillains/dominion.svg)](https://gitter.im/turbovillains/dominion?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 Dominion P2P Protocol
 =====
 
