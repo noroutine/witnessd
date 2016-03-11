@@ -4,11 +4,9 @@
 [![Build Status](https://drone.io/github.com/noroutine/dominion/status.png)](https://drone.io/github.com/noroutine/dominion/latest)
 -->
 
-[![Build Status](https://travis-ci.org/noroutine/dominion.svg?branch=master)](https://travis-ci.org/noroutine/dominion) 
+[![Build Status](https://travis-ci.org/noroutine/dominion.svg?branch=master)](https://travis-ci.org/noroutine/dominion) [![Gitter](https://badges.gitter.im/turbovillains/dominion.svg)](https://gitter.im/turbovillains/dominion?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![Issue Count](https://codeclimate.com/github/noroutine/dominion/badges/issue_count.svg)](https://codeclimate.com/github/noroutine/dominion)
 
 [![Run Status](https://api.shippable.com/projects/56e21e429d043da07bb60188/badge?branch=master)](https://app.shippable.com/projects/56e21e429d043da07bb60188)
-
-[![Issue Count](https://codeclimate.com/github/noroutine/dominion/badges/issue_count.svg)](https://codeclimate.com/github/noroutine/dominion)
 
 Dominion P2P Protocol
 =====
