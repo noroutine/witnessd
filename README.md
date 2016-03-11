@@ -18,4 +18,4 @@ Usage
     make
     ./dominion
     
-You will end up in CLI, while in background also HTTP interface starts at port 5000
+You will end up in CLI, while in background also HTTP interface starts at port 9999 (controlled by PORT environment variable)
