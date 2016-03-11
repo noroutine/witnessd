@@ -2,7 +2,11 @@
 engines:
   golint:
     enabled: true
+  shellcheck:
+    enabled: true
+
 ratings:
   paths: []
+  
 exclude_paths:
 - vendor/
