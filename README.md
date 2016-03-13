@@ -6,21 +6,21 @@
 
 [![Go](https://img.shields.io/badge/Go-1.6-blue.svg)](https://golang.org/) [![Build Status](https://travis-ci.org/noroutine/dominion.svg?branch=master)](https://travis-ci.org/noroutine/dominion) [![Gitter](https://badges.gitter.im/turbovillains/dominion.svg)](https://gitter.im/turbovillains/dominion?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![Issue Count](https://codeclimate.com/github/noroutine/dominion/badges/issue_count.svg)](https://codeclimate.com/github/noroutine/dominion/issues) [![Run Status](https://api.shippable.com/projects/56d6302a9d043da07b213702/badge?branch=master)](https://app.shippable.com/projects/56d6302a9d043da07b213702)
 
-Dominion Client
-=====
+### Dominion Client
 
 Dominion client implements P2P protocol designed to allow 2-6 players enjoy the game without centralized server.
 
-How to Use
-=====
+#### How to Use
 
 Write your own AI that communicates with this client or play yourself via CLI
 
 [More about the Dominion](https://en.wikipedia.org/wiki/Dominion_(card_game))
 
-How to Build
-===
+#### Get Involved
 
+	apt-get -qq install git build-essential libreadline-dev
+    go get github.com/noroutine.me
+    cd $GOPATH/src/noroutine/gonzales
     make
     ./dominion
     
