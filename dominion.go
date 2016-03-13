@@ -10,6 +10,8 @@ import (
 	"github.com/noroutine/bonjour"
 	"github.com/noroutine/dominion/protocol"
 	"github.com/noroutine/dominion/cli"
+
+	"github.com/reusee/mmh3"
 )
 
 const version = "0.0.7"
@@ -100,8 +102,17 @@ func main() {
 		time.Sleep(5 * time.Second)
 	})
 
+	repl.Register("mmh3", func(args []string) {
+		key := ""
+		if len(args) > 0 {
+			key = args[0]
+		}
+
+		fmt.Printf("murmur3(\"%s\") = %x\n", key, mmh3.Sum128([]byte(key)))
+	})
+
 	repl.Register("name", func(args []string) {
-		if len(args) > 0{
+		if len(args) > 0 {
 			name = args[0]
 			fmt.Println("You are now", name)
 			repl.Prompt = name + "> "
