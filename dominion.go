@@ -20,7 +20,7 @@ const serviceType = "_dominion._tcp"
 const domain = "local."
 const servicePort = 9999
 
-func service_list() {
+func serviceList() {
     resolver, err := bonjour.NewResolver(nil)
     if err != nil {
         log.Println("Failed to initialize resolver:", err.Error())
@@ -46,7 +46,7 @@ L:
     }
 }
 
-func service_register(name string) {
+func serviceRegister(name string) {
 	// Run registration (blocking call)
     _, err := bonjour.Register(name, serviceType, "", servicePort, []string{"txtv=1", "app=test"}, nil)
     if err != nil {
@@ -86,11 +86,11 @@ func main() {
 	}
 	
 	repl.Register("list", func(args []string) {
-		service_list()
+		serviceList()
 	})
 
 	repl.Register("register", func(args []string) {
-		service_register(name)
+		serviceRegister(name)
 	})
 
 	repl.Register("help", func(args []string) {
@@ -116,7 +116,7 @@ func main() {
 			name = args[0]
 			fmt.Println("You are now", name)
 			repl.Prompt = name + "> "
-			client.PlayerId = name
+			client.PlayerID = name
 		} else {
 			fmt.Println(name)
 		}

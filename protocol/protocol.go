@@ -9,14 +9,14 @@ import (
 
 type Client struct {
 	Address string
-	PlayerId string
+	PlayerID string
 }
 
-func (self *Client) Serve() {
+func (client *Client) Serve() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("GET %s", html.EscapeString(r.URL.Path))
-		fmt.Fprintf(w, "Hello from %s\n", html.EscapeString(self.PlayerId))
+		fmt.Fprintf(w, "Hello from %s\n", html.EscapeString(client.PlayerID))
 	})
 
-	log.Fatal(http.ListenAndServe(self.Address, nil))
+	log.Fatal(http.ListenAndServe(client.Address, nil))
 }
