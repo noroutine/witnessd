@@ -10,6 +10,8 @@ import (
 	"github.com/noroutine/bonjour"
 	"github.com/noroutine/dominion/protocol"
 	"github.com/noroutine/dominion/cli"
+
+	"github.com/reusee/mmh3"
 )
 
 const version = "0.0.7"
@@ -18,7 +20,7 @@ const serviceType = "_dominion._tcp"
 const domain = "local."
 const servicePort = 9999
 
-func service_list() {
+func serviceList() {
     resolver, err := bonjour.NewResolver(nil)
     if err != nil {
         log.Println("Failed to initialize resolver:", err.Error())
@@ -44,7 +46,7 @@ L:
     }
 }
 
-func service_register(name string) {
+func serviceRegister(name string) {
 	// Run registration (blocking call)
     _, err := bonjour.Register(name, serviceType, "", servicePort, []string{"txtv=1", "app=test"}, nil)
     if err != nil {
@@ -84,11 +86,11 @@ func main() {
 	}
 	
 	repl.Register("list", func(args []string) {
-		service_list()
+		serviceList()
 	})
 
 	repl.Register("register", func(args []string) {
-		service_register(name)
+		serviceRegister(name)
 	})
 
 	repl.Register("help", func(args []string) {
@@ -100,12 +102,21 @@ func main() {
 		time.Sleep(5 * time.Second)
 	})
 
+	repl.Register("mmh3", func(args []string) {
+		key := ""
+		if len(args) > 0 {
+			key = args[0]
+		}
+
+		fmt.Printf("murmur3(\"%s\") = %x\n", key, mmh3.Sum128([]byte(key)))
+	})
+
 	repl.Register("name", func(args []string) {
-		if len(args) > 0{
+		if len(args) > 0 {
 			name = args[0]
 			fmt.Println("You are now", name)
 			repl.Prompt = name + "> "
-			client.PlayerId = name
+			client.PlayerID = name
 		} else {
 			fmt.Println(name)
 		}

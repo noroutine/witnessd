@@ -29,40 +29,40 @@ func New() *REPL {
 	}
 }
 
-func (self *REPL) Register(command string, handler HandlerFunc) {
-	self.handlers[command] = handler 
+func (repl *REPL) Register(command string, handler HandlerFunc) {
+	repl.handlers[command] = handler 
 }
 
-func (self *REPL) GetKnownCommands() []string {
-	commands := make([]string, len(self.handlers))
+func (repl *REPL) GetKnownCommands() []string {
+	commands := make([]string, len(repl.handlers))
 	i := 0
-	for command := range self.handlers {
+	for command := range repl.handlers {
 		commands[i] = command
 		i++
 	}	
 	return commands
 }
 
-func (self *REPL) understands(commandWithArgs string) bool {
+func (repl *REPL) understands(commandWithArgs string) bool {
 	if commandWithArgs == "" {
 		return false
 	}
 
 	command := strings.Fields(commandWithArgs)[0]
 
-	_, handlerPresent := self.handlers[command]
+	_, handlerPresent := repl.handlers[command]
 
 	return handlerPresent
 }
 
-func (self *REPL) handle(commandWithArgs string) bool {
+func (repl *REPL) handle(commandWithArgs string) bool {
 	if commandWithArgs == "" {
 		return false
 	}
 
 	commandWithArgsA := strings.Fields(commandWithArgs)
 
-	handler, handlerPresent := self.handlers[commandWithArgsA[0]]
+	handler, handlerPresent := repl.handlers[commandWithArgsA[0]]
 
 	if handlerPresent {
 		handler(commandWithArgsA[1:])	
@@ -71,12 +71,12 @@ func (self *REPL) handle(commandWithArgs string) bool {
 	return true
 }
 
-func (self *REPL) Serve() {
-	log.Println(self.Description, "started")	
+func (repl *REPL) Serve() {
+	log.Println(repl.Description, "started")	
 
 	readline.SetCompletionFunction(func (input, line string, start, end int) []string {
 		var completions []string
-		for command := range self.handlers {
+		for command := range repl.handlers {
 			if strings.HasPrefix(command, input) {
 				completions = append(completions, command)
 			}
@@ -85,14 +85,14 @@ func (self *REPL) Serve() {
 	})
 
     // Ctrl+C handling, doesn't work properly
-    int_ch := make(chan os.Signal, 1)
-    signal.Notify(int_ch, os.Interrupt)
+    intCh := make(chan os.Signal, 1)
+    signal.Notify(intCh, os.Interrupt)
     go func(ch chan os.Signal) {
     	for s := range ch {
-	    	self.Signals <- s
+	    	repl.Signals <- s
 	    	readline.CleanupAfterSignel()
     	}
-	}(int_ch)
+	}(intCh)
 
 	// This is generally what people expect in a modern Readline-based app
 	readline.ParseAndBind("TAB: menu-complete")
@@ -102,20 +102,20 @@ func (self *REPL) Serve() {
 
 L:	
 	for {
-		result := readline.Readline(&self.Prompt)
+		result := readline.Readline(&repl.Prompt)
 	
 		switch {
 		case result == nil:
 			fmt.Println()
 			break L // exit loop
 		case len(strings.TrimSpace(*result)) == 0:
-			if self.EmptyHandler != nil {
-				self.EmptyHandler()
+			if repl.EmptyHandler != nil {
+				repl.EmptyHandler()
 			}
 		case *result == "exit":
 			break L // exit loop
-		case self.understands(*result):
-			self.handle(*result)
+		case repl.understands(*result):
+			repl.handle(*result)
 		default:
 			fmt.Printf("Unknown command '%s', try 'help'\n", *result)
 			continue

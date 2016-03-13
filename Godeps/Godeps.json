@@ -15,6 +15,10 @@
 			"Rev": "03db8e3d37c9f90fc484b30d943968de7fe1e5fd"
 		},
 		{
+			"ImportPath": "github.com/reusee/mmh3",
+			"Rev": "64b85163255bbb6af4f0d0eab61ecdda7ea7cd96"
+		},
+		{
 			"ImportPath": "golang.org/x/net/internal/iana",
 			"Rev": "6acef71eb69611914f7a30939ea9f6e194c78172"
 		},
