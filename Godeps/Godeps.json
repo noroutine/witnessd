@@ -8,7 +8,7 @@
 		},
 		{
 			"ImportPath": "github.com/noroutine/bonjour",
-			"Rev": "7ee314fe2bb898db0072d9af4b540b816fe7c6b5"
+			"Rev": "b1d674468acb82362936b1176b23a3dd94cd18b3"
 		},
 		{
 			"ImportPath": "github.com/noroutine/go-readline",
