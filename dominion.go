@@ -20,7 +20,11 @@ const serviceType = "_dominion._tcp"
 const domain = "local."
 const servicePort = 9999
 
-func serviceList() {
+type GameService struct {
+    BonjourServer *bonjour.Server
+}
+
+func (gameService *GameService) serviceList() {
     resolver, err := bonjour.NewResolver(nil)
     if err != nil {
         log.Println("Failed to initialize resolver:", err.Error())
@@ -46,13 +50,26 @@ L:
     }
 }
 
-func serviceRegister(name string) {
+func (gameService *GameService) serviceRegister(name string) {
     // Run registration (blocking call)
-    _, err := bonjour.Register(name, serviceType, "", servicePort, []string{"txtv=1", "app=test"}, nil)
+    s, err := bonjour.Register(name, serviceType, "", servicePort, []string{"txtv=1", "app=test"}, nil)
+    // s.TTL(0)
     if err != nil {
         log.Fatalln(err.Error())
     }
+    gameService.BonjourServer = s
     log.Printf("Registered")
+}
+
+func (gameService *GameService) serviceShutdown() {
+    if gameService.BonjourServer != nil {
+        gameService.BonjourServer.Shutdown()
+        gameService.BonjourServer = nil
+        log.Printf("Unregistered")
+    } else {
+        log.Printf("Not registered")
+    }
+
 }
 
 func main() {
@@ -71,6 +88,8 @@ func main() {
     repl.Description = description
     repl.Prompt = name + "> "
 
+    gameService := &GameService{}
+
     go func() {
         for s := range repl.Signals {
             if s == os.Interrupt {
@@ -86,11 +105,15 @@ func main() {
     }
     
     repl.Register("list", func(args []string) {
-        serviceList()
+        gameService.serviceList()
     })
 
     repl.Register("register", func(args []string) {
-        serviceRegister(name)
+        gameService.serviceRegister(name)
+    })
+
+    repl.Register("unregister", func(args []string) {
+        gameService.serviceShutdown()
     })
 
     repl.Register("help", func(args []string) {
