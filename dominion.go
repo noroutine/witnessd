@@ -4,97 +4,49 @@ import (
     "fmt"
     "log"
     "os"
-    "time"
     "strings"
+    "strconv"
 
-    "github.com/noroutine/bonjour"
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cli"
+    "github.com/noroutine/dominion/group"
 
     "github.com/reusee/mmh3"
 )
 
 const version = "0.0.7"
 const description = "Dominion " + version
-const serviceType = "_dominion._tcp"
-const domain = "local."
-const servicePort = 9999
-
-type GameService struct {
-    BonjourServer *bonjour.Server
-}
-
-func (gameService *GameService) serviceList() {
-    resolver, err := bonjour.NewResolver(nil)
-    if err != nil {
-        log.Println("Failed to initialize resolver:", err.Error())
-        return
-    }
-
-    results := make(chan *bonjour.ServiceEntry)
-    err = resolver.Browse(serviceType, domain, results)
-
-    if err != nil {
-        log.Println("Failed to browse:", err.Error())
-        return
-    }
-
-L:
-    for {
-        select {
-        case e := <- results:
-            fmt.Printf("%s @ %s (%v:%d)\n", e.Instance, e.HostName, e.AddrIPv4, e.Port)
-        case <- time.After(1 * time.Second):
-            break L
-        }
-    }
-}
-
-func (gameService *GameService) serviceRegister(name string) {
-    // Run registration (blocking call)
-    s, err := bonjour.Register(name, serviceType, "", servicePort, []string{"txtv=1", "app=test"}, nil)
-    // s.TTL(0)
-    if err != nil {
-        log.Fatalln(err.Error())
-    }
-    gameService.BonjourServer = s
-    log.Printf("Registered")
-}
-
-func (gameService *GameService) serviceShutdown() {
-    if gameService.BonjourServer != nil {
-        gameService.BonjourServer.Shutdown()
-        gameService.BonjourServer = nil
-        log.Printf("Unregistered")
-    } else {
-        log.Printf("Not registered")
-    }
-
-}
 
 func main() {
 
-    port := os.Getenv("PORT")
+    var err error
+
+    portStr := os.Getenv("PORT")
+    port := group.DefaultPort
     name := "Dominion Player"
 
-    if port == "" {
-        port = fmt.Sprintf("%d", servicePort)
+    if portStr == "" {
+        portStr = fmt.Sprintf("%d", group.DefaultPort)
+    } else {
+        port, err = strconv.Atoi(portStr)
+        if err != nil || port <= 0 || port > 65535 {
+            fmt.Printf("Invalid port: %v\n", portStr)
+            os.Exit(42)
+        }
     }
 
-    client := &protocol.Client{ ":" + port, name }
+    client := &protocol.Client{ ":" + portStr, name }
     go client.Serve()
 
     repl := cli.New()
     repl.Description = description
     repl.Prompt = name + "> "
 
-    gameService := &GameService{}
-
     go func() {
         for s := range repl.Signals {
             if s == os.Interrupt {
                 log.Printf("Interrupted")
-                os.Exit(0)
+                os.Exit(42)
             }
         }
     }()
@@ -105,15 +57,15 @@ func main() {
     }
     
     repl.Register("list", func(args []string) {
-        gameService.serviceList()
+        group.NodeList("local.")
     })
 
     repl.Register("register", func(args []string) {
-        gameService.serviceRegister(name)
+        group.NodeRegister(name, port)
     })
 
-    repl.Register("unregister", func(args []string) {
-        gameService.serviceShutdown()
+    repl.Register("leave", func(args []string) {
+        group.NodeLeave()
     })
 
     repl.Register("help", func(args []string) {
