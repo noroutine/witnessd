@@ -23,5 +23,26 @@ Write your own AI that communicates with this client or play yourself via CLI
     cd $GOPATH/src/noroutine/dominion
     make
     ./dominion
-    
-You will end up in CLI, while in background also HTTP interface starts at port 9999 (controlled by PORT environment variable)
+
+#### Usage
+
+Just type
+
+    dominion --help
+
+So far it's not much
+
+    Usage of ./dominion:
+      -announce
+            auto announce
+      -join string
+            name of the group of the node
+      -name string
+            name of the player (default "Player")
+      -port int
+            client API port (default 9999)
+
+
+You will end up in CLI, while in background also HTTP interface starts at port 9999 (controlled by parameter).
+
+Number of commands are available in CLI, type 'help' to check

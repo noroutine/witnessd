@@ -5,7 +5,7 @@ import (
     "log"
     "os"
     "strings"
-    "strconv"
+    "flag"
 
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cli"
@@ -17,30 +17,36 @@ import (
 const version = "0.0.7"
 const description = "Dominion " + version
 
+type Options struct {
+    port int
+    name string
+    join string
+    announce bool
+}
+
 func main() {
 
-    var err error
+    opts := Options{}
 
-    portStr := os.Getenv("PORT")
-    port := group.DefaultPort
-    name := "Player"
+    flag.IntVar(&opts.port, "port", group.DefaultPort, "client API port")
+    flag.StringVar(&opts.name, "name", "Player", "name of the player")
+    flag.StringVar(&opts.join, "join", "", "name of the group of the node")
+    flag.BoolVar(&opts.announce, "announce", false, "auto announce")
+    flag.Parse()
 
-    if portStr == "" {
-        portStr = fmt.Sprintf("%d", group.DefaultPort)
-    } else {
-        port, err = strconv.Atoi(portStr)
-        if err != nil || port <= 0 || port > 65535 {
-            fmt.Printf("Invalid port: %v\n", portStr)
-            os.Exit(42)
-        }
+    if opts.port <= 0 || opts.port > 65535 {
+        fmt.Printf("Invalid port: %v\n", opts.port)
+        os.Exit(42)
     }
 
-    client := protocol.NewClient( ":" + portStr, name )
+    opts.join = strings.TrimSpace(opts.join)
+
+    client := protocol.NewClient(fmt.Sprintf(":%d", opts.port), opts.name)
     go client.Serve()
 
     repl := cli.New()
     repl.Description = description
-    repl.Prompt = name + "> "
+    repl.Prompt = opts.name + "> "
 
     go func() {
         for s := range repl.Signals {
@@ -51,9 +57,18 @@ func main() {
         }
     }()
 
-    var node = group.NewNode("local.", name)
-    node.Port = port
+    var node = group.NewNode("local.", opts.name)
+    node.Port = opts.port
+
+    if len(opts.join) > 0 {
+        node.Group = &opts.join
+    }
+
     node.StartDiscovery()
+
+    if opts.announce {
+        node.AnnouncePresence()
+    }
 
     go func() {
         for {
@@ -146,13 +161,13 @@ func main() {
 
     repl.Register("name", func(args []string) {
         if len(args) > 0 {
-            name = args[0]
+            name := args[0]
             fmt.Println("You are now", name)
             repl.Prompt = name + "> "
             client.PlayerID = name
             node.AnnounceName(name)
         } else {
-            fmt.Println(name)
+            fmt.Println(node.Name)
         }
     })
 
