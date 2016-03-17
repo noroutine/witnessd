@@ -65,25 +65,25 @@ func main() {
         }
     })
 
-    repl.Register("games", func(args []string) {
-        games := make(map[string][]group.Peer)
+    repl.Register("groups", func(args []string) {
+        gs := make(map[string][]group.Peer)
 
         for _, peer := range node.Peers {
             if peer.Group == nil {
                 continue
             }
 
-            peers := games[*peer.Group]
+            peers := gs[*peer.Group]
 
             if peers == nil {
-                games[*peer.Group] = []group.Peer { peer }
+                gs[*peer.Group] = []group.Peer { peer }
             } else {
-                games[*peer.Group] = append(peers, peer)
+                gs[*peer.Group] = append(peers, peer)
             }
         }
 
-        for game, peers := range games {
-            fmt.Printf("%s (%d are playing)\n", game, len(peers))
+        for g, peers := range gs {
+            fmt.Printf("%s (%d members)\n", g, len(peers))
         }
     })
 
