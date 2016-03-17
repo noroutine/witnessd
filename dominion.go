@@ -73,7 +73,7 @@ func main() {
     
     repl.Register("peers", func(args []string) {
         if node.Group == nil {
-            fmt.Println("You are not a memeber of any group, use 'join'")
+            fmt.Println("You are not a member of any group, use 'join'")
             return
         }
 
@@ -102,6 +102,20 @@ func main() {
         node.AnnouncePresence()
     })
 
+    repl.Register("denounce", func(args []string) {
+        node.Shutdown()
+    })
+
+    repl.Register("group", func(args []string) {
+        var group string
+        if (node.Group == nil) {
+            group = "None"
+        } else {
+            group = *node.Group
+        }
+        fmt.Println(group)
+    })
+
     repl.Register("join", func(args []string) {
         var group string
         if len(args) > 0 {
@@ -109,12 +123,7 @@ func main() {
             fmt.Println("Your group is now", group)
             node.AnnounceGroup(&group)
         } else {
-            if (node.Group == nil) {
-                group = "None"
-            } else {
-                group = *node.Group
-            }
-            fmt.Println(group)
+            fmt.Println("Provide group name, discover with 'groups")
         }
     })
 
