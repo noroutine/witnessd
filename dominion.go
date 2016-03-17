@@ -60,7 +60,9 @@ func main() {
     }
     
     repl.Register("list", func(args []string) {
-        node.DiscoverPeers()
+        for _, peer := range node.Peers {
+            fmt.Printf("%s (%s) (%s:%d)\n", *peer.Name, peer.GroupOrNone(), *peer.HostName, peer.Port)
+        }
     })
 
     repl.Register("announce", func(args []string) {

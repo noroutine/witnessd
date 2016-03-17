@@ -2,7 +2,6 @@ package group;
 
 import (
     "log"
-    "fmt"
     "time"
     "strings"
     "github.com/noroutine/bonjour"
@@ -14,26 +13,36 @@ type Node struct {
     Port int
     Group *string
     server *bonjour.Server
+    discoverLoopCh chan int
+    Peers []Peer
 }
 
 type Peer struct {
     Domain *string    
     Name *string
+    HostName *string
+    Port int
     Group *string
+
+    serviceEntry *bonjour.ServiceEntry
 }
 
 const ServiceType = "_dominion._tcp"
 const DefaultPort = 9999
+const browseWindow = 200 * time.Millisecond
+const discoveryInterval = 5 * time.Second
 
 var bonjourServer *bonjour.Server = nil
 
 func NewNode(domain string, name string) *Node {
     return &Node{
-        Domain: &domain,
-        Name:   &name,
-        Port:   DefaultPort,
-        Group:  nil,
-        server: nil,
+        Domain:         &domain,
+        Name:           &name,
+        Port:           DefaultPort,
+        Group:          nil,
+        server:         nil,
+        discoverLoopCh: nil,
+        Peers:          []Peer{},
     }
 }
 
@@ -52,13 +61,35 @@ func (node *Node) DiscoverPeers() {
         return
     }
 
+    node.Peers = make([]Peer, 0, 10)
+
 L:
     for {
         select {
         case e := <- results:
-            fmt.Printf("%s (%s) @ %s (%v:%d)\n", e.Instance, nilAs(getPeerGroup(e), "None"), e.HostName, e.AddrIPv4, e.Port)
-        case <- time.After(100 * time.Millisecond):
+            node.Peers = append(node.Peers, Peer{
+                    Domain: node.Domain,
+                    Name: &e.Instance,
+                    Group: getPeerGroup(e),
+                    HostName: &e.HostName,
+                    Port: e.Port,
+                    serviceEntry: e,
+                })
+        case <- time.After(browseWindow):
             break L
+        }
+    }
+
+    log.Println("Discovered", len(node.Peers), "peers")
+}
+
+func (node *Node) peerDiscoveryLoop(quit chan int) {
+    for {
+        select {            
+        case <- time.Tick(discoveryInterval):
+            node.DiscoverPeers()
+        case <- quit:
+            return
         }
     }
 }
@@ -77,6 +108,8 @@ func (node *Node) AnnouncePresence() {
             log.Printf("Registered")
             node.server = s
         }
+        node.discoverLoopCh = make(chan int, 1)
+        go node.peerDiscoveryLoop(node.discoverLoopCh)
     } else {
         log.Printf("Already registered")
     }
@@ -101,6 +134,8 @@ func (node *Node) AnnounceGroup(newGroup string) {
 
 func (node *Node) Leave() {
     if node.server != nil {
+        node.discoverLoopCh <- 0
+        node.discoverLoopCh = nil
         node.server.Shutdown()
         node.server = nil
         log.Printf("Left")
@@ -118,10 +153,10 @@ func getPeerGroup(e *bonjour.ServiceEntry) *string {
     return nil
 }
 
-func nilAs(value *string, nilValue string) string{
-    if value == nil {
-        return nilValue
+func (peer *Peer) GroupOrNone() string {
+    if peer.Group == nil {
+        return "None"
     } else {
-        return *value
+        return *peer.Group
     }
 }
