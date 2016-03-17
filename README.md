@@ -20,7 +20,7 @@ Write your own AI that communicates with this client or play yourself via CLI
 
 	apt-get -qq install git build-essential libreadline-dev
     go get github.com/noroutine.me
-    cd $GOPATH/src/noroutine/gonzales
+    cd $GOPATH/src/noroutine/dominion
     make
     ./dominion
     
