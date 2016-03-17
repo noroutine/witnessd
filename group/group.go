@@ -14,7 +14,8 @@ type Node struct {
     Group *string
     server *bonjour.Server
     discoverLoopCh chan int
-    Peers []Peer
+    Peers map[string]Peer
+    Groups map[string]GroupData
 }
 
 type Peer struct {
@@ -25,6 +26,10 @@ type Peer struct {
     Group *string
 
     serviceEntry *bonjour.ServiceEntry
+}
+
+type GroupData struct {
+    SeenMembers int
 }
 
 const ServiceType = "_dominion._tcp"
@@ -42,7 +47,8 @@ func NewNode(domain string, name string) *Node {
         Group:          nil,
         server:         nil,
         discoverLoopCh: nil,
-        Peers:          []Peer{},
+        Peers:          map[string]Peer{},
+        Groups:         map[string]GroupData{},
     }
 }
 
@@ -61,35 +67,82 @@ func (node *Node) DiscoverPeers() {
         return
     }
 
-    node.Peers = make([]Peer, 0, 10)
-
+    ps := make(map[string]Peer)
+    gs := make(map[string]GroupData)
 L:
     for {
         select {
         case e := <- results:
-            node.Peers = append(node.Peers, Peer{
-                    Domain: node.Domain,
-                    Name: &e.Instance,
-                    Group: getPeerGroup(e),
-                    HostName: &e.HostName,
-                    Port: e.Port,
-                    serviceEntry: e,
-                })
+            g := getPeerGroup(e)
+            if g != nil {
+                gData, ok := gs[*g]
+                if ! ok {
+                    gs[*g] = GroupData{
+                        SeenMembers: 1,
+                    }
+                } else {
+                    gData.SeenMembers = gData.SeenMembers + 1
+                    gs[*g] = gData
+                }
+
+                if node.Group != nil && *node.Group == *g {
+                    ps[e.Instance] = Peer{
+                        Domain:       node.Domain,
+                        Name:         &e.Instance,
+                        Group:        g,
+                        HostName:     &e.HostName,
+                        Port:         e.Port,
+                        serviceEntry: e,
+                    }
+                }
+            }
         case <- time.After(browseWindow):
             break L
         }
     }
-}
 
-func (node *Node) peerDiscoveryLoop(quit chan int) {
-    for {
-        node.DiscoverPeers()
-        select {            
-        case <- time.Tick(discoveryInterval):
-        case <- quit:
-            return
+    // find who left
+    for name := range node.Peers {
+        if _, ok := ps[name]; !ok {
+            log.Println(name, "left")
         }
     }
+    // find who joined
+    for names := range ps {
+        if _, ok := node.Peers[name]; !ok {
+            log.Println(name, "joined")
+        }
+    }
+
+    node.Peers = ps
+    node.Groups = gs
+}
+
+func (node *Node) StartDiscovery() {
+    if node.discoverLoopCh == nil {
+        node.discoverLoopCh = make(chan int, 1)
+        go func(quit chan int) {
+            for {
+                node.DiscoverPeers()
+                select {
+                case <- time.Tick(discoveryInterval):
+                case <- quit:
+                    return
+                }
+            }
+        }(node.discoverLoopCh)
+    }
+}
+
+func (node *Node) StopDiscovery() {
+    if node.discoverLoopCh != nil {
+        node.discoverLoopCh <- 1
+        node.discoverLoopCh = nil
+    }
+}
+
+func (node *Node) IsDiscoveryActive() bool {
+    return node.discoverLoopCh != nil
 }
 
 func (node *Node) AnnouncePresence() {
@@ -106,8 +159,6 @@ func (node *Node) AnnouncePresence() {
             log.Printf("Registered")
             node.server = s
         }
-        node.discoverLoopCh = make(chan int, 1)
-        go node.peerDiscoveryLoop(node.discoverLoopCh)
     } else {
         log.Printf("Already registered")
     }
@@ -115,7 +166,7 @@ func (node *Node) AnnouncePresence() {
 
 func (node *Node) AnnounceName(newName string) {
     if node.server != nil {
-        node.Leave()
+        node.Shutdown()
         node.Name = &newName
         node.AnnouncePresence()
     } else {
@@ -123,20 +174,22 @@ func (node *Node) AnnounceName(newName string) {
     }
 }
 
-func (node *Node) AnnounceGroup(newGroup string) {
-    node.Group = &newGroup
+func (node *Node) AnnounceGroup(newGroup *string) {
+    node.Group = newGroup
     if (node.server != nil) {
-        node.server.SetText([]string{ "group=" + newGroup })    
+        if node.Group != nil {
+            node.server.SetText([]string{ "group=" + *newGroup })
+        } else {
+            node.server.SetText([]string{})
+        }
     }
 }
 
-func (node *Node) Leave() {
+func (node *Node) Shutdown() {
     if node.server != nil {
-        node.discoverLoopCh <- 0
-        node.discoverLoopCh = nil
         node.server.Shutdown()
         node.server = nil
-        log.Printf("Left")
+        log.Printf("Shutdown")
     }
 }
 
@@ -149,12 +202,4 @@ func getPeerGroup(e *bonjour.ServiceEntry) *string {
     }
 
     return nil
-}
-
-func (peer *Peer) GroupOrNone() string {
-    if peer.Group == nil {
-        return "None"
-    } else {
-        return *peer.Group
-    }
 }

@@ -53,6 +53,7 @@ func main() {
 
     var node = group.NewNode("local.", name)
     node.Port = port
+    node.StartDiscovery()
 
     repl.EmptyHandler = func() {        
         fmt.Println("Feeling lost? Try 'help'")
@@ -60,30 +61,29 @@ func main() {
     }
     
     repl.Register("peers", func(args []string) {
-        for _, peer := range node.Peers {
-            fmt.Printf("%s (%s) (%s:%d)\n", *peer.Name, peer.GroupOrNone(), *peer.HostName, peer.Port)
+        if node.Group == nil {
+            fmt.Println("You are not a memeber of any group, use 'join'")
+            return
+        }
+
+        if (! node.IsDiscoveryActive()) {
+            node.DiscoverPeers()
+        }
+
+        fmt.Printf("Your peers in group %s:\n", *node.Group)
+
+        for name, peer := range node.Peers {
+            fmt.Printf("%s (%s:%d)\n", name, *peer.HostName, peer.Port)
         }
     })
 
     repl.Register("groups", func(args []string) {
-        gs := make(map[string][]group.Peer)
-
-        for _, peer := range node.Peers {
-            if peer.Group == nil {
-                continue
-            }
-
-            peers := gs[*peer.Group]
-
-            if peers == nil {
-                gs[*peer.Group] = []group.Peer { peer }
-            } else {
-                gs[*peer.Group] = append(peers, peer)
-            }
+        if (! node.IsDiscoveryActive()) {
+            node.DiscoverPeers()
         }
 
-        for g, peers := range gs {
-            fmt.Printf("%s (%d members)\n", g, len(peers))
+        for name, data := range node.Groups {
+            fmt.Printf("%s (%d members)\n", name, data.SeenMembers)
         }
     })
 
@@ -91,8 +91,24 @@ func main() {
         node.AnnouncePresence()
     })
 
+    repl.Register("join", func(args []string) {
+        var group string
+        if len(args) > 0 {
+            group = args[0]
+            fmt.Println("Your group is now", group)
+            node.AnnounceGroup(&group)
+        } else {
+            if (node.Group == nil) {
+                group = "None"
+            } else {
+                group = *node.Group
+            }
+            fmt.Println(group)
+        }
+    })
+
     repl.Register("leave", func(args []string) {
-        node.Leave()
+        node.AnnounceGroup(nil)
     })
 
     repl.Register("help", func(args []string) {
@@ -117,22 +133,6 @@ func main() {
             node.AnnounceName(name)
         } else {
             fmt.Println(name)
-        }
-    })
-
-    repl.Register("group", func(args []string) {
-        var group string
-        if len(args) > 0 {
-            group = args[0]
-            fmt.Println("Your group is now", group)
-            node.AnnounceGroup(group)
-        } else {
-            if (node.Group == nil) {
-                group = "None"
-            } else {
-                group = *node.Group
-            }
-            fmt.Println(group)
         }
     })
 
