@@ -14,12 +14,14 @@ type Node struct {
     Group *string
     server *bonjour.Server
     discoverLoopCh chan int
+    Left chan Peer
+    Joined chan Peer
     Peers map[string]Peer
     Groups map[string]GroupData
 }
 
 type Peer struct {
-    Domain *string    
+    Domain *string
     Name *string
     HostName *string
     Port int
@@ -48,6 +50,8 @@ func NewNode(domain string, name string) *Node {
         server:         nil,
         discoverLoopCh: nil,
         Peers:          map[string]Peer{},
+        Left:           make(chan Peer, 10),
+        Joined:         make(chan Peer, 10),
         Groups:         map[string]GroupData{},
     }
 }
@@ -102,15 +106,15 @@ L:
     }
 
     // find who left
-    for name := range node.Peers {
+    for name, peer := range node.Peers {
         if _, ok := ps[name]; !ok {
-            log.Println(name, "left")
+            node.Left <- peer
         }
     }
     // find who joined
-    for names := range ps {
+    for name, peer := range ps {
         if _, ok := node.Peers[name]; !ok {
-            log.Println(name, "joined")
+            node.Joined <- peer
         }
     }
 

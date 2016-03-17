@@ -55,6 +55,17 @@ func main() {
     node.Port = port
     node.StartDiscovery()
 
+    go func() {
+        for {
+            select {
+            case peer := <- node.Joined:
+                log.Println(*peer.Name, "joined")
+            case peer := <- node.Left:
+                log.Println(*peer.Name, "left")
+            }
+        }
+    }()
+
     repl.EmptyHandler = func() {        
         fmt.Println("Feeling lost? Try 'help'")
         repl.EmptyHandler = nil
