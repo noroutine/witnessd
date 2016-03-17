@@ -23,7 +23,7 @@ func main() {
 
     portStr := os.Getenv("PORT")
     port := group.DefaultPort
-    name := "Dominion Player"
+    name := "Player"
 
     if portStr == "" {
         portStr = fmt.Sprintf("%d", group.DefaultPort)
@@ -51,21 +51,24 @@ func main() {
         }
     }()
 
+    var node = group.NewNode("local.", name)
+    node.Port = port
+
     repl.EmptyHandler = func() {        
         fmt.Println("Feeling lost? Try 'help'")
         repl.EmptyHandler = nil
     }
     
     repl.Register("list", func(args []string) {
-        group.NodeList("local.")
+        node.DiscoverPeers()
     })
 
-    repl.Register("register", func(args []string) {
-        group.NodeRegister(name, port)
+    repl.Register("announce", func(args []string) {
+        node.AnnouncePresence()
     })
 
     repl.Register("leave", func(args []string) {
-        group.NodeLeave()
+        node.Leave()
     })
 
     repl.Register("help", func(args []string) {
@@ -87,8 +90,25 @@ func main() {
             fmt.Println("You are now", name)
             repl.Prompt = name + "> "
             client.PlayerID = name
+            node.AnnounceName(name)
         } else {
             fmt.Println(name)
+        }
+    })
+
+    repl.Register("group", func(args []string) {
+        var group string
+        if len(args) > 0 {
+            group = args[0]
+            fmt.Println("Your group is now", group)
+            node.AnnounceGroup(group)
+        } else {
+            if (node.Group == nil) {
+                group = "None"
+            } else {
+                group = *node.Group
+            }
+            fmt.Println(group)
         }
     })
 
