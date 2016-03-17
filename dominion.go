@@ -35,7 +35,7 @@ func main() {
         }
     }
 
-    client := &protocol.Client{ ":" + portStr, name }
+    client := protocol.NewClient( ":" + portStr, name )
     go client.Serve()
 
     repl := cli.New()

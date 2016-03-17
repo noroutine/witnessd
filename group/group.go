@@ -29,11 +29,11 @@ var bonjourServer *bonjour.Server = nil
 
 func NewNode(domain string, name string) *Node {
     return &Node{
-        &domain,
-        &name,
-        DefaultPort,
-        nil,
-        nil,
+        Domain: &domain,
+        Name:   &name,
+        Port:   DefaultPort,
+        Group:  nil,
+        server: nil,
     }
 }
 

@@ -21,11 +21,11 @@ type REPL struct {
 
 func New() *REPL {
 	return &REPL{
-		"", 
-		"> ",
-		make(chan os.Signal, 1),
-		nil,
-		map[string]HandlerFunc{},
+		Description:  "",
+		Prompt:       "> ",
+		Signals:      make(chan os.Signal, 1),
+		EmptyHandler: nil,
+		handlers:     map[string]HandlerFunc{},
 	}
 }
 

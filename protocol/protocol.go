@@ -12,6 +12,12 @@ type Client struct {
 	PlayerID string
 }
 
+func NewClient(address string, id string) *Client {
+	return &Client{
+		Address:  address,
+		PlayerID: id,
+	}
+}
 func (client *Client) Serve() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("GET %s", html.EscapeString(r.URL.Path))
