@@ -38,6 +38,7 @@ const ServiceType = "_dominion._tcp"
 const DefaultPort = 9999
 const browseWindow = 200 * time.Millisecond
 const discoveryInterval = 5 * time.Second
+const groupTextParameter = "group="
 
 var bonjourServer *bonjour.Server = nil
 
@@ -152,11 +153,7 @@ func (node *Node) IsDiscoveryActive() bool {
 func (node *Node) AnnouncePresence() {
     // Run registration (blocking call)
     if node.server == nil {
-        text := []string {}
-        if node.Group != nil {
-            text = []string { "group=" + *node.Group }
-        }        
-        s, err := bonjour.Register(*node.Name, ServiceType, "", node.Port, text, nil)
+        s, err := bonjour.Register(*node.Name, ServiceType, "", node.Port, node.getGroupText(), nil)
         if err != nil {
             log.Fatalln(err.Error())
         } else {
@@ -181,11 +178,7 @@ func (node *Node) AnnounceName(newName string) {
 func (node *Node) AnnounceGroup(newGroup *string) {
     node.Group = newGroup
     if (node.server != nil) {
-        if node.Group != nil {
-            node.server.SetText([]string{ "group=" + *newGroup })
-        } else {
-            node.server.SetText([]string{})
-        }
+        node.server.SetText(node.getGroupText())
     }
 }
 
@@ -199,11 +192,19 @@ func (node *Node) Shutdown() {
 
 func getPeerGroup(e *bonjour.ServiceEntry) *string {
     for _, s := range e.Text {
-        if strings.HasPrefix(s, "group=") {
-            group := strings.TrimPrefix(s, "group=")
+        if strings.HasPrefix(s, groupTextParameter) {
+            group := strings.TrimPrefix(s, groupTextParameter)
             return &group
         }
     }
 
     return nil
+}
+
+func (node *Node) getGroupText() []string {
+    if node.Group != nil {
+        return []string{ groupTextParameter + *node.Group}
+    } else {
+        return []string{}
+    }
 }
