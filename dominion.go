@@ -59,9 +59,31 @@ func main() {
         repl.EmptyHandler = nil
     }
     
-    repl.Register("list", func(args []string) {
+    repl.Register("peers", func(args []string) {
         for _, peer := range node.Peers {
             fmt.Printf("%s (%s) (%s:%d)\n", *peer.Name, peer.GroupOrNone(), *peer.HostName, peer.Port)
+        }
+    })
+
+    repl.Register("games", func(args []string) {
+        games := make(map[string][]group.Peer)
+
+        for _, peer := range node.Peers {
+            if peer.Group == nil {
+                continue
+            }
+
+            peers := games[*peer.Group]
+
+            if peers == nil {
+                games[*peer.Group] = []group.Peer { peer }
+            } else {
+                games[*peer.Group] = append(peers, peer)
+            }
+        }
+
+        for game, peers := range games {
+            fmt.Printf("%s (%d are playing)\n", game, len(peers))
         }
     })
 

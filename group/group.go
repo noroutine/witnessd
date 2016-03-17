@@ -79,15 +79,13 @@ L:
             break L
         }
     }
-
-    log.Println("Discovered", len(node.Peers), "peers")
 }
 
 func (node *Node) peerDiscoveryLoop(quit chan int) {
     for {
+        node.DiscoverPeers()
         select {            
         case <- time.Tick(discoveryInterval):
-            node.DiscoverPeers()
         case <- quit:
             return
         }
@@ -144,7 +142,7 @@ func (node *Node) Leave() {
 
 func getPeerGroup(e *bonjour.ServiceEntry) *string {
     for _, s := range e.Text {
-        if strings.HasPrefix(s, "group=") {            
+        if strings.HasPrefix(s, "group=") {
             group := strings.TrimPrefix(s, "group=")
             return &group
         }
