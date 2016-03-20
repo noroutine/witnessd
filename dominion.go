@@ -6,10 +6,13 @@ import (
     "os"
     "strings"
     "flag"
+    "strconv"
+    "math/rand"
 
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cli"
     "github.com/noroutine/dominion/group"
+    "github.com/noroutine/dominion/momo"
 
     "github.com/reusee/mmh3"
 )
@@ -158,6 +161,82 @@ func main() {
 
         fmt.Printf("murmur3(\"%s\") = %x\n", key, mmh3.Sum128([]byte(key)))
     })
+
+    repl.Register("momostats", func(args []string) {
+        if len(args) < 2 {
+            fmt.Println("Need two integer arguments")
+            return
+        }
+
+        keySpace := 1 << 32
+
+        kss, err := strconv.Atoi(args[0])
+        n, err := strconv.Atoi(args[1])
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+
+        loads := make(map[int]int)
+
+        for k := 0; k < kss; k++ {
+            momoHash := momo.MomoHash32(rand.Intn(keySpace), n)
+
+            nodeLoad, ok := loads[momoHash]
+            if ok {
+                loads[momoHash] = nodeLoad + 1
+            } else {
+                loads[momoHash] = 1
+            }
+        }
+
+        
+        totalBuckets := momo.Fact(n)
+        bucketRange := keySpace / totalBuckets
+        fmt.Printf("bucketRange: %v, buckets: %v\n", bucketRange, totalBuckets)
+        fmt.Println("Keyspace distribution")
+        idealLoad := float64(kss) / float64(n)
+        for node, load := range loads {
+            var deviation float64 = (float64(load) - idealLoad) / idealLoad * 100
+            fmt.Printf("  %d : %d, deviation: %.2f%%\n", node, load, deviation)
+        }
+        
+    })
+
+    repl.Register("momo", func(args []string) {
+        if len(args) < 2 {
+            fmt.Println("Need two integer arguments")
+            return
+        }
+
+        k, err := strconv.Atoi(args[0])
+        n, err := strconv.Atoi(args[1])
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+
+        fmt.Printf("momo(%d, %d) = %d\n", k, n, momo.MomoHash32(k, n))
+    
+    })
+
+
+    repl.Register("fact", func(args []string) {
+        if len(args) < 1 {
+            fmt.Println("Need intege r argument")
+            return
+        }
+
+        n, err := strconv.Atoi(args[0])
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+
+        fmt.Printf("fact(%d) = %d\n", n, momo.Fact(n))
+    
+    })
+
 
     repl.Register("name", func(args []string) {
         if len(args) > 0 {
