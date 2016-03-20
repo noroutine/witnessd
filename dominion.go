@@ -8,6 +8,7 @@ import (
     "flag"
     "strconv"
     "math/rand"
+    "time"
 
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cli"
@@ -178,7 +179,7 @@ func main() {
         }
 
         loads := make(map[int]int)
-
+        startTime := time.Now()
         for k := 0; k < kss; k++ {
             momoHash := momo.MomoHash32(rand.Intn(keySpace), n)
 
@@ -189,11 +190,13 @@ func main() {
                 loads[momoHash] = 1
             }
         }
+        endTime := time.Now()
 
-        
+        spentTime := (endTime.UnixNano() - startTime.UnixNano()) / 1000
         totalBuckets := momo.Fact(n)
         bucketRange := keySpace / totalBuckets
         fmt.Printf("bucketRange: %v, buckets: %v\n", bucketRange, totalBuckets)
+        fmt.Printf("hash/ms: %f, ms/hash: %v\n", float64(kss)/float64(spentTime), float64(spentTime)/float64(kss))
         fmt.Println("Keyspace distribution")
         idealLoad := float64(kss) / float64(n)
         for node, load := range loads {
