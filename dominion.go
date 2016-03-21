@@ -13,7 +13,7 @@ import (
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cli"
     "github.com/noroutine/dominion/group"
-    "github.com/noroutine/dominion/fairhash"
+    "github.com/noroutine/dominion/ffhash"
 
     "github.com/reusee/mmh3"
 )
@@ -169,19 +169,23 @@ func main() {
             return
         }
 
-        keySpace := 1 << 32
+        var keySpace uint64 = 0xFFFFFFFFFFFFFFFF
+        kss, err := strconv.ParseUint(args[0], 10, 64)
+        n, err := strconv.ParseUint(args[1], 10, 64)
 
-        kss, err := strconv.Atoi(args[0])
-        n, err := strconv.Atoi(args[1])
+        rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+        var randomKey uint64
         if err != nil {
             fmt.Println(err)
             return
         }
 
-        loads := make(map[int]int)
+        loads := make(map[uint64]uint64)
         startTime := time.Now()
-        for k := 0; k < kss; k++ {
-            hash := fairhash.Sum32(rand.Intn(keySpace), n)
+        for k := uint64(0); k < kss; k++ {
+            randomKey = uint64(rng.Uint32()) << 32 + uint64(rng.Uint32())
+            hash := ffhash.Sum64(randomKey, uint64(n))
 
             nodeLoad, ok := loads[hash]
             if ok {
@@ -193,18 +197,46 @@ func main() {
         endTime := time.Now()
 
         spentTime := (endTime.UnixNano() - startTime.UnixNano()) / 1000
-        totalBuckets := fairhash.Fact(n)
+        totalBuckets := ffhash.Fact(n)
         bucketRange := keySpace / totalBuckets
-        fmt.Printf("bucketRange: %v, buckets: %v\n", bucketRange, totalBuckets)
-        fmt.Printf("hash/ms: %f, ms/hash: %v\n", float64(kss)/float64(spentTime), float64(spentTime)/float64(kss))
+        fmt.Printf("bucketRange: %v, buckets: %v, buckets/node: %v\n", bucketRange, totalBuckets, totalBuckets/n)
+        fmt.Printf("hash/ms: %f, ns/hash: %v\n", float64(kss)/float64(spentTime), 1000*float64(spentTime)/float64(kss))
         fmt.Println("Keyspace distribution")
         idealLoad := float64(kss) / float64(n)
         for node, load := range loads {
             var deviation float64 = (float64(load) - idealLoad) / idealLoad * 100
             fmt.Printf("  %d : %d, deviation: %.2f%%\n", node, load, deviation)
         }
-        
     })
+
+    repl.Register("mmstats", func(args []string) {
+        if len(args) < 1 {
+            fmt.Println("Need an integer argument")
+            return
+        }
+
+        kss, err := strconv.ParseUint(args[0], 10, 64)
+        if err != nil {
+            fmt.Println("Need number")
+            return
+        }
+        rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+        startTime := time.Now()
+        for k := uint64(0); k < kss; k++ {
+            mmh3.Sum128([]byte {
+                byte(rng.Intn(256)), 
+                byte(rng.Intn(256)),
+                byte(rng.Intn(256)),
+                byte(rng.Intn(256)),
+            })
+        }
+        endTime := time.Now()
+
+        spentTime := (endTime.UnixNano() - startTime.UnixNano()) / 1000
+        fmt.Printf("hash/ms: %f, ns/hash: %v\n", float64(kss)/float64(spentTime), 1000*float64(spentTime)/float64(kss))
+    })
+
 
     repl.Register("hash", func(args []string) {
         if len(args) < 2 {
@@ -212,14 +244,15 @@ func main() {
             return
         }
 
-        k, err := strconv.Atoi(args[0])
-        n, err := strconv.Atoi(args[1])
+        k, err := strconv.ParseUint(args[0], 10, 64)
+        n, err := strconv.ParseUint(args[1], 10, 64)
+        
         if err != nil {
             fmt.Println(err)
             return
         }
 
-        fmt.Printf("hash(%d, %d) = %d\n", k, n, fairhash.Sum32(k, n))
+        fmt.Printf("hash(%d, %d) = %d\n", k, n, ffhash.Sum64(k, n))
     
     })
 
