@@ -1,20 +1,21 @@
 package ffhash
 
-import (
-//    "fmt"
-)
+/**
+
+ffhash.go
+
+Fast and fair consistent hash for small clusters (best < 18 nodes, maximum 20)
+Hashes 64-bit key to node, where data for that key stored
+
+*/
 
 func Sum64(key uint64, n uint64) uint64 {
     var totalBuckets uint64 = Fact(n)
     bucketRange := 0xFFFFFFFFFFFFFFFF / totalBuckets
     bucket := key / bucketRange
-//    fmt.Printf("bucket: %v / %v, bucketRange: %v\n", bucket, totalBuckets, bucketRange)
     return fairfast(bucket, n, 0, totalBuckets)
 }
 
-/**
-    Finds out a node from range of 0..n-1 for the given bucket
-*/
 func fairfast(bucket uint64, n uint64, rangeStart uint64, rangeEnd uint64) uint64 {
     var i uint64
     var f, l uint64 = 0, 1
@@ -22,31 +23,23 @@ func fairfast(bucket uint64, n uint64, rangeStart uint64, rangeEnd uint64) uint6
     for i = 2; i <= n; i++ {
 
         pivot := rangeStart + (rangeEnd - rangeStart) / i
-        size := pivot - rangeStart
-
-        //fmt.Printf("size: %v, pivot: %v, [ %v, %v ]\n", size, pivot, rangeStart, rangeEnd)
-        
+        size := pivot - rangeStart        
         if bucket < pivot {
             // exclude first
-            //fmt.Println("exclude first", f)
             f, l = l, i
             rangeEnd = pivot
 
         } else {
             // exclude last
-            //fmt.Println("exclude last", l)
             f, l = f, i
 
             // quickly find the range for the node
             var cut uint64
             for cut = rangeStart; bucket >= cut + size; cut = cut + size { 
-                //fmt.Println("cut %v", cut)
             }
 
             rangeStart, rangeEnd = cut, cut + size
         }
-
-        // fmt.Printf("[%v, %v, %v] [%v, %v, %v, %v]\n", i, f, l, rangeStart, rangeEnd, pivot, size)
     }
 
     if l == n {
