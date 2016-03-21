@@ -12,7 +12,7 @@
 		},
 		{
 			"ImportPath": "github.com/noroutine/ffhash",
-			"Rev": "cc8df4d4261f474b86c1be481920960a80e3cfaf"
+			"Rev": "c04eb34cffe9091912c330d6999a728227a30489"
 		},
 		{
 			"ImportPath": "github.com/noroutine/go-readline",

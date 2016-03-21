@@ -9,6 +9,7 @@ import (
     "strconv"
     "math/rand"
     "time"
+    "hash/fnv"
 
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cli"
@@ -162,6 +163,28 @@ func main() {
 
         fmt.Printf("murmur3(\"%s\") = %x\n", key, mmh3.Sum128([]byte(key)))
     })
+    
+    repl.Register("node", func(args []string) {
+        if len(args) < 2 {
+            fmt.Println("Need a cluster size and a key")
+            return
+        }
+
+        n, err := strconv.ParseUint(args[0], 10, 64)
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+
+        key := args[1]
+
+        fnv1a := fnv.New64a()
+        fnv1a.Write([]byte(key))
+        keyHash := fnv1a.Sum64()
+
+        fmt.Printf("fnv1a(%v) = %v, slots: %v\n" , key, keyHash, n)
+        fmt.Printf("primary node: %v\n" , ffhash.Sum64(keyHash, n))
+    })
 
     repl.Register("hashstats", func(args []string) {
         if len(args) < 2 {
@@ -236,7 +259,6 @@ func main() {
         spentTime := (endTime.UnixNano() - startTime.UnixNano()) / 1000
         fmt.Printf("hash/ms: %f, ns/hash: %v\n", float64(kss)/float64(spentTime), 1000*float64(spentTime)/float64(kss))
     })
-
 
     repl.Register("hash", func(args []string) {
         if len(args) < 2 {
