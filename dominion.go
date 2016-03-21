@@ -13,7 +13,7 @@ import (
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cli"
     "github.com/noroutine/dominion/group"
-    "github.com/noroutine/dominion/momo"
+    "github.com/noroutine/dominion/fairhash"
 
     "github.com/reusee/mmh3"
 )
@@ -163,7 +163,7 @@ func main() {
         fmt.Printf("murmur3(\"%s\") = %x\n", key, mmh3.Sum128([]byte(key)))
     })
 
-    repl.Register("momostats", func(args []string) {
+    repl.Register("hashstats", func(args []string) {
         if len(args) < 2 {
             fmt.Println("Need two integer arguments")
             return
@@ -181,19 +181,19 @@ func main() {
         loads := make(map[int]int)
         startTime := time.Now()
         for k := 0; k < kss; k++ {
-            momoHash := momo.MomoHash32(rand.Intn(keySpace), n)
+            hash := fairhash.Sum32(rand.Intn(keySpace), n)
 
-            nodeLoad, ok := loads[momoHash]
+            nodeLoad, ok := loads[hash]
             if ok {
-                loads[momoHash] = nodeLoad + 1
+                loads[hash] = nodeLoad + 1
             } else {
-                loads[momoHash] = 1
+                loads[hash] = 1
             }
         }
         endTime := time.Now()
 
         spentTime := (endTime.UnixNano() - startTime.UnixNano()) / 1000
-        totalBuckets := momo.Fact(n)
+        totalBuckets := fairhash.Fact(n)
         bucketRange := keySpace / totalBuckets
         fmt.Printf("bucketRange: %v, buckets: %v\n", bucketRange, totalBuckets)
         fmt.Printf("hash/ms: %f, ms/hash: %v\n", float64(kss)/float64(spentTime), float64(spentTime)/float64(kss))
@@ -206,7 +206,7 @@ func main() {
         
     })
 
-    repl.Register("momo", func(args []string) {
+    repl.Register("hash", func(args []string) {
         if len(args) < 2 {
             fmt.Println("Need two integer arguments")
             return
@@ -219,27 +219,9 @@ func main() {
             return
         }
 
-        fmt.Printf("momo(%d, %d) = %d\n", k, n, momo.MomoHash32(k, n))
+        fmt.Printf("hash(%d, %d) = %d\n", k, n, fairhash.Sum32(k, n))
     
     })
-
-
-    repl.Register("fact", func(args []string) {
-        if len(args) < 1 {
-            fmt.Println("Need intege r argument")
-            return
-        }
-
-        n, err := strconv.Atoi(args[0])
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-
-        fmt.Printf("fact(%d) = %d\n", n, momo.Fact(n))
-    
-    })
-
 
     repl.Register("name", func(args []string) {
         if len(args) > 0 {

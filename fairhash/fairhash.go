@@ -1,24 +1,32 @@
-package momo
+package fairhash
 
 import (
-    //"fmt"
+    // "fmt"
 )
 
-func MomoHash32(key int, n int) int {
+func Sum32(key int, n int) int {
     totalBuckets := Fact(n)
     keySpace := 1 << 32
     bucketRange := keySpace / totalBuckets
     bucket := key / bucketRange
     // fmt.Printf("keySpace: %v, bucketRange: %v, buckets: %v, bucket: %v\n", keySpace, bucketRange, totalBuckets, bucket)
 
-    return Momo(bucket, n)
+    return fairhash(bucket, n, totalBuckets)
 }
 
-func Momo(key int, n int) int {
+/**
+    Finds out a node from range of 0..n-1 for the given bucket
+*/
+func fairhash(bucket int, n int, totalBuckets int) int {
     f, l := 0, 1
 
     rangeStart := 0
-    rangeEnd := Fact(n)
+    var rangeEnd int
+    if totalBuckets > 0 {
+        rangeEnd = totalBuckets    
+    } else {
+        rangeEnd = Fact(n)
+    }
 
     for i := 2; i <= n; i++ {
 
@@ -31,7 +39,7 @@ func Momo(key int, n int) int {
             return -1
         }
 
-        if key < pivot {
+        if bucket < pivot {
             // exclude first
             // fmt.Println("exclude first", f)
             f, l = l, i
@@ -44,7 +52,7 @@ func Momo(key int, n int) int {
 
             // quickly find the range for the node
             var cut int
-            for cut = rangeStart; key >= cut + size; cut = cut + size { }
+            for cut = rangeStart; bucket >= cut + size; cut = cut + size { }
 
             rangeStart, rangeEnd = cut, cut + size
         }
