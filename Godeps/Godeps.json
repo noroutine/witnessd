@@ -11,6 +11,10 @@
 			"Rev": "b1d674468acb82362936b1176b23a3dd94cd18b3"
 		},
 		{
+			"ImportPath": "github.com/noroutine/ffhash",
+			"Rev": "cc8df4d4261f474b86c1be481920960a80e3cfaf"
+		},
+		{
 			"ImportPath": "github.com/noroutine/go-readline",
 			"Rev": "03db8e3d37c9f90fc484b30d943968de7fe1e5fd"
 		},

@@ -13,7 +13,7 @@ import (
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cli"
     "github.com/noroutine/dominion/group"
-    "github.com/noroutine/dominion/ffhash"
+    "github.com/noroutine/ffhash"
 
     "github.com/reusee/mmh3"
 )
