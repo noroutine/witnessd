@@ -15,12 +15,12 @@
 			"Rev": "c04eb34cffe9091912c330d6999a728227a30489"
 		},
 		{
-			"ImportPath": "github.com/noroutine/go-readline",
-			"Rev": "03db8e3d37c9f90fc484b30d943968de7fe1e5fd"
+			"ImportPath": "github.com/noroutine/go-cli",
+			"Rev": "b3bb313458f3d4f2e8b6628acc4fbdfcd5bec297"
 		},
 		{
-			"ImportPath": "github.com/reusee/mmh3",
-			"Rev": "64b85163255bbb6af4f0d0eab61ecdda7ea7cd96"
+			"ImportPath": "github.com/noroutine/go-readline",
+			"Rev": "03db8e3d37c9f90fc484b30d943968de7fe1e5fd"
 		},
 		{
 			"ImportPath": "golang.org/x/net/internal/iana",

@@ -6,9 +6,9 @@ import (
     "os"
     "strings"
     "flag"
-
+    
+    "github.com/noroutine/go-cli"
     "github.com/noroutine/dominion/protocol"
-    "github.com/noroutine/dominion/cli"
     "github.com/noroutine/dominion/group"
     "github.com/noroutine/dominion/cluster"
 )
