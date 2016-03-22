@@ -5,6 +5,7 @@ import (
     "log"
     "errors"
     "hash/fnv"
+
     "github.com/noroutine/ffhash"
     "github.com/noroutine/dominion/group"
 )
@@ -21,6 +22,53 @@ type Server struct {
     ipv4conn *net.UDPConn
     ipv6conn *net.UDPConn
     shouldShutdown bool
+}
+
+const MessageHeaderSize = 20
+
+type Message struct {
+    Version  byte       //   1 byte
+    OP       byte       // + 1 bytes    = 2
+    Args     []byte     // + 8 bytes    = 10
+    Reserved []byte     // + 8 bytes    = 18
+    Length   uint16     // + 2 bytes    = 20
+    Load     []byte
+}
+
+func Unmarshall(packet []byte) (m *Message, err error) {
+    if len(packet) < MessageHeaderSize {
+        err = errors.New("Packet is too small")
+        return
+    }
+
+    return &Message{
+        Version:    packet[0],
+        OP:         packet[1],
+        Args:       packet[2:10],
+        Reserved:   packet[10:18],
+        Length:     uint16(packet[18]) << 8 | uint16(packet[19]),
+        Load:       packet[20:],
+    }, nil
+}
+
+func Marshall(m *Message) []byte {
+    l := MessageHeaderSize + len(m.Load)
+    buf := make([]byte, l, l)
+    buf[0] = m.Version
+    buf[1] = m.OP
+    for i := range(m.Args) {
+        buf[2 + i] = m.Args[i]
+    }
+    for i := 0; i < 8; i++ {
+        buf[10 + i] = 0
+    }
+    buf[18] = byte(m.Length >> 8)
+    buf[19] = byte(m.Length)
+
+    for i, p := range m.Load {
+        buf[20 + i] = p
+    }    
+    return buf
 }
 
 const dhtPort int = 9999
@@ -111,7 +159,12 @@ func (s *Server) serve(c *net.UDPConn) {
 }
 
 func (s *Server) handlePacket(packet []byte, from net.Addr) error {
-    log.Printf(string(packet))
+    m, err := Unmarshall(packet)
+    if err != nil {
+        return err
+    }
+
+    log.Printf("%x, %s\n", m.OP, string(m.Load))
     return nil
 }
 
