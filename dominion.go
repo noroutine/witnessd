@@ -6,17 +6,11 @@ import (
     "os"
     "strings"
     "flag"
-    "strconv"
-    "math/rand"
-    "time"
-    "hash/fnv"
 
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cli"
     "github.com/noroutine/dominion/group"
-    "github.com/noroutine/ffhash"
-
-    "github.com/reusee/mmh3"
+    "github.com/noroutine/dominion/cluster"
 )
 
 const version = "0.0.7"
@@ -64,6 +58,8 @@ func main() {
 
     var node = group.NewNode("local.", opts.name)
     node.Port = opts.port
+
+    var cl *cluster.Cluster
 
     if len(opts.join) > 0 {
         node.Group = &opts.join
@@ -151,131 +147,23 @@ func main() {
         node.AnnounceGroup(nil)
     })
 
+    repl.Register("cluster_start", func(args []string) {
+        var err error
+        cl, err = cluster.ConnectVia(node)
+        if err != nil {
+            fmt.Println(err)
+        }
+    })
+
+    repl.Register("cluster_stop", func(args []string) {
+        if cl != nil {
+            cl.Disconnect()
+            cl = nil            
+        }
+    })
+
     repl.Register("help", func(args []string) {
         fmt.Printf("Commands: %s\n", strings.Join(repl.GetKnownCommands(), ", "))
-    })
-
-    repl.Register("mmh3", func(args []string) {
-        key := ""
-        if len(args) > 0 {
-            key = args[0]
-        }
-
-        fmt.Printf("murmur3(\"%s\") = %x\n", key, mmh3.Sum128([]byte(key)))
-    })
-    
-    repl.Register("node", func(args []string) {
-        if len(args) < 2 {
-            fmt.Println("Need a cluster size and a key")
-            return
-        }
-
-        n, err := strconv.ParseUint(args[0], 10, 64)
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-
-        key := args[1]
-
-        fnv1a := fnv.New64a()
-        fnv1a.Write([]byte(key))
-        keyHash := fnv1a.Sum64()
-
-        fmt.Printf("fnv1a(%v) = %v, slots: %v\n" , key, keyHash, n)
-        fmt.Printf("primary node: %v\n" , ffhash.Sum64(keyHash, n))
-    })
-
-    repl.Register("hashstats", func(args []string) {
-        if len(args) < 2 {
-            fmt.Println("Need two integer arguments")
-            return
-        }
-
-        var keySpace uint64 = 0xFFFFFFFFFFFFFFFF
-        kss, err := strconv.ParseUint(args[0], 10, 64)
-        n, err := strconv.ParseUint(args[1], 10, 64)
-
-        rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-        var randomKey uint64
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-
-        loads := make(map[uint64]uint64)
-        startTime := time.Now()
-        for k := uint64(0); k < kss; k++ {
-            randomKey = uint64(rng.Uint32()) << 32 + uint64(rng.Uint32())
-            hash := ffhash.Sum64(randomKey, uint64(n))
-
-            nodeLoad, ok := loads[hash]
-            if ok {
-                loads[hash] = nodeLoad + 1
-            } else {
-                loads[hash] = 1
-            }
-        }
-        endTime := time.Now()
-
-        spentTime := (endTime.UnixNano() - startTime.UnixNano()) / 1000
-        totalBuckets := ffhash.Fact(n)
-        bucketRange := keySpace / totalBuckets
-        fmt.Printf("bucketRange: %v, buckets: %v, buckets/node: %v\n", bucketRange, totalBuckets, totalBuckets/n)
-        fmt.Printf("hash/ms: %f, ns/hash: %v\n", float64(kss)/float64(spentTime), 1000*float64(spentTime)/float64(kss))
-        fmt.Println("Keyspace distribution")
-        idealLoad := float64(kss) / float64(n)
-        for node, load := range loads {
-            var deviation float64 = (float64(load) - idealLoad) / idealLoad * 100
-            fmt.Printf("  %d : %d, deviation: %.2f%%\n", node, load, deviation)
-        }
-    })
-
-    repl.Register("mmstats", func(args []string) {
-        if len(args) < 1 {
-            fmt.Println("Need an integer argument")
-            return
-        }
-
-        kss, err := strconv.ParseUint(args[0], 10, 64)
-        if err != nil {
-            fmt.Println("Need number")
-            return
-        }
-        rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-        startTime := time.Now()
-        for k := uint64(0); k < kss; k++ {
-            mmh3.Sum128([]byte {
-                byte(rng.Intn(256)), 
-                byte(rng.Intn(256)),
-                byte(rng.Intn(256)),
-                byte(rng.Intn(256)),
-            })
-        }
-        endTime := time.Now()
-
-        spentTime := (endTime.UnixNano() - startTime.UnixNano()) / 1000
-        fmt.Printf("hash/ms: %f, ns/hash: %v\n", float64(kss)/float64(spentTime), 1000*float64(spentTime)/float64(kss))
-    })
-
-    repl.Register("hash", func(args []string) {
-        if len(args) < 2 {
-            fmt.Println("Need two integer arguments")
-            return
-        }
-
-        k, err := strconv.ParseUint(args[0], 10, 64)
-        n, err := strconv.ParseUint(args[1], 10, 64)
-        
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-
-        fmt.Printf("hash(%d, %d) = %d\n", k, n, ffhash.Sum64(k, n))
-    
     })
 
     repl.Register("name", func(args []string) {

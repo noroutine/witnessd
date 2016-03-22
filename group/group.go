@@ -17,7 +17,7 @@ type Node struct {
     Left chan Peer
     Joined chan Peer
     Peers map[string]Peer
-    Groups map[string]GroupData
+    Groups map[string]Data
 }
 
 type Peer struct {
@@ -27,10 +27,10 @@ type Peer struct {
     Port int
     Group *string
 
-    serviceEntry *bonjour.ServiceEntry
+    ServiceEntry *bonjour.ServiceEntry
 }
 
-type GroupData struct {
+type Data struct {
     SeenMembers int
 }
 
@@ -53,7 +53,7 @@ func NewNode(domain string, name string) *Node {
         Peers:          map[string]Peer{},
         Left:           make(chan Peer, 10),
         Joined:         make(chan Peer, 10),
-        Groups:         map[string]GroupData{},
+        Groups:         map[string]Data{},
     }
 }
 
@@ -73,7 +73,7 @@ func (node *Node) DiscoverPeers() {
     }
 
     ps := make(map[string]Peer)
-    gs := make(map[string]GroupData)
+    gs := make(map[string]Data)
 L:
     for {
         select {
@@ -82,7 +82,7 @@ L:
             if g != nil {
                 gData, ok := gs[*g]
                 if ! ok {
-                    gs[*g] = GroupData{
+                    gs[*g] = Data{
                         SeenMembers: 1,
                     }
                 } else {
@@ -97,7 +97,7 @@ L:
                         Group:        g,
                         HostName:     &e.HostName,
                         Port:         e.Port,
-                        serviceEntry: e,
+                        ServiceEntry: e,
                     }
                 }
             }
@@ -165,6 +165,18 @@ func (node *Node) AnnouncePresence() {
     }
 }
 
+func (node *Node) IsAnnounced() bool {
+    return node.server != nil
+}
+
+func (node *Node) IsClustered() bool {
+    return node.Group != nil
+}
+
+func (node *Node) IsOperational() bool {
+    return node.IsClustered() && node.IsAnnounced()
+}
+
 func (node *Node) AnnounceName(newName string) {
     if node.server != nil {
         node.Shutdown()
@@ -180,6 +192,10 @@ func (node *Node) AnnounceGroup(newGroup *string) {
     if (node.server != nil) {
         node.server.SetText(node.getGroupText())
     }
+}
+
+func (node *Node) GetServiceEntry() *bonjour.ServiceEntry {
+    return node.Peers[*node.Name].ServiceEntry
 }
 
 func (node *Node) Shutdown() {
