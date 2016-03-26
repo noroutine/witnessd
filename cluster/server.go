@@ -9,6 +9,7 @@ type Server struct {
     ipv4conn *net.UDPConn
     ipv6conn *net.UDPConn
     shouldShutdown bool
+    handlers map[OperationType]func(*Message)
     Messages chan *Message
 }
 
@@ -27,6 +28,11 @@ func NewServer(ip4 net.IP, ip6 net.IP, port int) *Server {
         ipv4conn: l4,
         ipv6conn: l6,
         shouldShutdown: false,
+        handlers: map[OperationType]func(*Message) {
+            NOOP: func(m *Message) { },
+            PING: Ping,
+            JOIN: Join,
+        },
         Messages: make(chan *Message),
     }
 }
