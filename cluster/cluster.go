@@ -8,11 +8,12 @@ import (
 
     "github.com/noroutine/ffhash"
     "github.com/noroutine/dominion/group"
+    "github.com/noroutine/dominion/cluster/protocol"
 )
 
 type Cluster struct {
     proxy *group.Node
-    s *Server
+    Server *Server
     Name string
     OrderId uint64
     Peers []string      // in contrast to proxy.Peers, this is stable ordered ring
@@ -22,53 +23,7 @@ type Server struct {
     ipv4conn *net.UDPConn
     ipv6conn *net.UDPConn
     shouldShutdown bool
-}
-
-const MessageHeaderSize = 20
-
-type Message struct {
-    Version  byte       //   1 byte
-    OP       byte       // + 1 bytes    = 2
-    Args     []byte     // + 8 bytes    = 10
-    Reserved []byte     // + 8 bytes    = 18
-    Length   uint16     // + 2 bytes    = 20
-    Load     []byte
-}
-
-func Unmarshall(packet []byte) (m *Message, err error) {
-    if len(packet) < MessageHeaderSize {
-        err = errors.New("Packet is too small")
-        return
-    }
-
-    return &Message{
-        Version:    packet[0],
-        OP:         packet[1],
-        Args:       packet[2:10],
-        Reserved:   packet[10:18],
-        Length:     uint16(packet[18]) << 8 | uint16(packet[19]),
-        Load:       packet[20:],
-    }, nil
-}
-
-func Marshall(m *Message) []byte {
-    l := MessageHeaderSize + len(m.Load)
-    buf := make([]byte, l, l)
-    buf[0] = m.Version
-    buf[1] = m.OP
-    for i := range(m.Args) {
-        buf[2 + i] = m.Args[i]
-    }
-    for i := 0; i < 8; i++ {
-        buf[10 + i] = 0
-    }
-    buf[18] = byte(m.Length >> 8)
-    buf[19] = byte(m.Length)
-
-    for i, p := range m.Load {
-        buf[20 + i] = p
-    }    
-    return buf
+    Messages chan *protocol.Message
 }
 
 const dhtPort int = 9999
@@ -124,18 +79,19 @@ func (c *Cluster) clusterConnectionLoop(port int) {
         log.Fatal(err)
     }
 
-    c.s = &Server{
+    c.Server = &Server{
         ipv4conn: l4,
         ipv6conn: l6,
         shouldShutdown: false,
+        Messages: make(chan *protocol.Message),
     }
 
-    if c.s.ipv4conn != nil {
-        go c.s.serve(c.s.ipv4conn)
+    if c.Server.ipv4conn != nil {
+        go c.Server.serve(c.Server.ipv4conn)
     }
     
-    if c.s.ipv6conn != nil {
-        go c.s.serve(c.s.ipv6conn)    
+    if c.Server.ipv6conn != nil {
+        go c.Server.serve(c.Server.ipv6conn)    
     }
 }
 
@@ -156,15 +112,18 @@ func (s *Server) serve(c *net.UDPConn) {
             log.Printf("[ERR] cluster: Failed to handle query: %v", err)
         }
     }
+
+    close(s.Messages)
 }
 
 func (s *Server) handlePacket(packet []byte, from net.Addr) error {
-    m, err := Unmarshall(packet)
+    m, err := protocol.Unmarshall(packet)
     if err != nil {
         return err
     }
 
-    log.Printf("%x, %s\n", m.OP, string(m.Load))
+    s.Messages <- m
+
     return nil
 }
 
