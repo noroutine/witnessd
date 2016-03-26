@@ -149,10 +149,12 @@ func main() {
 
     repl.Register("cluster_start", func(args []string) {
         var err error
-        cl, err = cluster.ConnectVia(node)
+        cl, err = cluster.NewVia(node)
         if err != nil {
             fmt.Println(err)
         }
+
+        cl.Connect()
     })
 
     repl.Register("cluster_stop", func(args []string) {
