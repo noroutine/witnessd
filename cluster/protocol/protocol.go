@@ -16,9 +16,9 @@ type Message struct {
     Version     byte               //   1 byte
     Type        OperationType      // + 1 bytes    = 2
     Operation   byte               // + 1 bytes    = 3
-    reserved1   byte               // + 1 byte     = 4
+//  reserved1   byte               // + 1 byte     = 4
     Args        []byte             // + 8 bytes    = 12
-    reserved2   []byte             // + 8 bytes    = 20
+//  reserved2   []byte             // + 8 bytes    = 20
     Length      uint16             // + 2 bytes    = 22
     Load        []byte
 }
