@@ -48,3 +48,11 @@ func TestTermination(t *testing.T) {
     case <- time.After(10 * time.Millisecond): t.Error("deadlock")
     }
 }
+
+func TestTerminateOn(t *testing.T) {
+    tf := TerminatesOn(1, 3, 5, 7)
+
+    if ! (tf(1) && tf(3) && tf(5) && tf(7) && !tf(0) && !tf(2) && !tf(4) && !tf(6) && !tf(8)) {
+        t.Error("terminates on wrong state")
+    }
+}
