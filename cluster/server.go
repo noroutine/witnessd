@@ -41,6 +41,10 @@ func (s *Server) Start() {
     }
 }
 
+func (s *Server) Shutdown() {
+    s.shouldShutdown = true
+}
+
 func (s *Server) serve(c *net.UDPConn) {
     if c == nil {
         return
@@ -71,8 +75,4 @@ func (s *Server) handlePacket(packet []byte, from net.Addr) error {
     s.Messages <- m
 
     return nil
-}
-
-func (s *Server) Shutdown() {
-    s.shouldShutdown = true
 }

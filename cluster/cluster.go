@@ -5,21 +5,19 @@ import (
     "hash/fnv"
 
     "github.com/noroutine/ffhash"
-    "github.com/noroutine/dominion/group"
 )
 
 type Cluster struct {
-    proxy *group.Node
+    proxy *Node
     Server *Server
     Name string
     OrderId uint64
     Peers []string      // in contrast to proxy.Peers, this is stable ordered ring
 }
 
-
 const dhtPort int = 9999
 
-func NewVia(node *group.Node) (c *Cluster, err error) {
+func NewVia(node *Node) (c *Cluster, err error) {
     if ! node.IsOperational() {
         return nil, errors.New("Node is not ready")
     }

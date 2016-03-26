@@ -1,4 +1,4 @@
-package group;
+package cluster;
 
 import (
     "log"

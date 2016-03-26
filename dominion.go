@@ -9,7 +9,6 @@ import (
     
     "github.com/noroutine/go-cli"
     "github.com/noroutine/dominion/protocol"
-    "github.com/noroutine/dominion/group"
     "github.com/noroutine/dominion/cluster"
 )
 
@@ -27,7 +26,7 @@ func main() {
 
     opts := Options{}
 
-    flag.IntVar(&opts.port, "port", group.DefaultPort, "client API port")
+    flag.IntVar(&opts.port, "port", cluster.DefaultPort, "client API port")
     flag.StringVar(&opts.name, "name", "Player", "name of the player")
     flag.StringVar(&opts.join, "join", "", "name of the group of the node")
     flag.BoolVar(&opts.announce, "announce", false, "auto announce")
@@ -56,7 +55,7 @@ func main() {
         }
     }()
 
-    var node = group.NewNode("local.", opts.name)
+    var node = cluster.NewNode("local.", opts.name)
     node.Port = opts.port
 
     var cl *cluster.Cluster
