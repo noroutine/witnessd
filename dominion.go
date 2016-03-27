@@ -163,6 +163,20 @@ func main() {
         }
     })
 
+    repl.Register("ping", func(args []string) {
+        if len(args) < 1 {
+            fmt.Println("Usage: ping <peer>")
+        }
+
+        cl.Send(args[0], &cluster.Message{
+            Version: 1,
+            Type: cluster.PING,
+            Operation: 0,
+            Length: 4,
+            Load: []byte("Ping"),
+        })
+    })
+
     repl.Register("help", func(args []string) {
         fmt.Printf("Commands: %s\n", strings.Join(repl.GetKnownCommands(), ", "))
     })

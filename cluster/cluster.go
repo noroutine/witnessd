@@ -3,7 +3,9 @@ package cluster
 import (
     "errors"
     "hash/fnv"
-
+    "log"
+    "fmt"
+    "net"
     "github.com/noroutine/ffhash"
 )
 
@@ -14,8 +16,6 @@ type Cluster struct {
     OrderId uint64
     Peers []string      // in contrast to proxy.Peers, this is stable ordered ring
 }
-
-const dhtPort int = 9999
 
 func NewVia(node *Node) (c *Cluster, err error) {
     if ! node.IsOperational() {
@@ -31,7 +31,7 @@ func NewVia(node *Node) (c *Cluster, err error) {
 func (c *Cluster) Connect() {
     // start listening on the DHT
     serviceEntry := c.proxy.GetServiceEntry()
-    c.Server = NewServer(serviceEntry.AddrIPv4, serviceEntry.AddrIPv6, dhtPort)
+    c.Server = NewServer(serviceEntry.AddrIPv4, serviceEntry.AddrIPv6, c.proxy.Port, c)
     c.Server.Start()
 
     // determine order id
@@ -52,6 +52,32 @@ func (c *Cluster) Get(key string) []byte {
 //    slot := keySlot(key, uint64(len(c.Peers)))
     // get data from node
     return make([]byte, 0, 0)
+}
+
+func (c *Cluster) Receive(m *Message) error {
+    log.Println("Receievd", string(m.Load))
+    return nil
+}
+
+func (c *Cluster) Send(peer string, m *Message) error {
+    p, ok := c.proxy.Peers[peer]
+    if !ok {
+        return errors.New(fmt.Sprintf("Peer not available: %s", peer))
+    }
+
+    log.Println("Sending", string(m.Load), "to", *p.HostName)
+    udpCl, err := NewClient(&net.UDPAddr{
+        IP: p.GetAddrIPv4(),
+        Port: p.Port,
+    })
+
+    if err != nil {
+        return err
+    }
+
+    defer udpCl.Close()
+
+    return udpCl.Send(m)
 }
 
 func keySlot(key string, slots uint64) uint64 {

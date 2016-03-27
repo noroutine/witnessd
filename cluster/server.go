@@ -5,15 +5,18 @@ import (
     "log"
 )
 
+type MessageReceiver interface {
+    Receive(*Message) error
+}
+
 type Server struct {
     ipv4conn *net.UDPConn
     ipv6conn *net.UDPConn
     shouldShutdown bool
-    handlers map[OperationType]func(*Message)
-    Messages chan *Message
+    receiver MessageReceiver
 }
 
-func NewServer(ip4 net.IP, ip6 net.IP, port int) *Server {
+func NewServer(ip4 net.IP, ip6 net.IP, port int, mr MessageReceiver) *Server {
     l4, err := net.ListenUDP("udp4", &net.UDPAddr{ IP: ip4, Port: port })
     if err != nil {
         log.Fatal(err)
@@ -28,23 +31,13 @@ func NewServer(ip4 net.IP, ip6 net.IP, port int) *Server {
         ipv4conn: l4,
         ipv6conn: l6,
         shouldShutdown: false,
-        handlers: map[OperationType]func(*Message) {
-            NOOP: func(m *Message) { },
-            PING: Ping,
-            JOIN: Join,
-        },
-        Messages: make(chan *Message),
+        receiver: mr,
     }
 }
 
 func (s *Server) Start() {
-    if s.ipv4conn != nil {
-        go s.serve(s.ipv4conn)
-    }
-    
-    if s.ipv6conn != nil {
-        go s.serve(s.ipv6conn)    
-    }
+    go s.serve(s.ipv4conn)    
+    go s.serve(s.ipv6conn)    
 }
 
 func (s *Server) Shutdown() {
@@ -56,6 +49,8 @@ func (s *Server) serve(c *net.UDPConn) {
         return
     }
     
+    defer c.Close()
+
     buf := make([]byte, 65536)
     
     for !s.shouldShutdown {
@@ -68,8 +63,6 @@ func (s *Server) serve(c *net.UDPConn) {
             log.Printf("[ERR] cluster: Failed to handle query: %v", err)
         }
     }
-
-    close(s.Messages)
 }
 
 func (s *Server) handlePacket(packet []byte, from net.Addr) error {
@@ -78,7 +71,5 @@ func (s *Server) handlePacket(packet []byte, from net.Addr) error {
         return err
     }
 
-    s.Messages <- m
-
-    return nil
+    return s.receiver.Receive(m)
 }

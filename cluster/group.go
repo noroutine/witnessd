@@ -20,16 +20,6 @@ type Node struct {
     Groups map[string]Data
 }
 
-type Peer struct {
-    Domain *string
-    Name *string
-    HostName *string
-    Port int
-    Group *string
-
-    ServiceEntry *bonjour.ServiceEntry
-}
-
 type Data struct {
     SeenMembers int
 }
@@ -39,8 +29,6 @@ const DefaultPort = 9999
 const browseWindow = 200 * time.Millisecond
 const discoveryInterval = 5 * time.Second
 const groupTextParameter = "group="
-
-var bonjourServer *bonjour.Server = nil
 
 func NewNode(domain string, name string) *Node {
     return &Node{
@@ -97,7 +85,7 @@ L:
                         Group:        g,
                         HostName:     &e.HostName,
                         Port:         e.Port,
-                        ServiceEntry: e,
+                        entry:        e,
                     }
                 }
             }
@@ -195,7 +183,7 @@ func (node *Node) AnnounceGroup(newGroup *string) {
 }
 
 func (node *Node) GetServiceEntry() *bonjour.ServiceEntry {
-    return node.Peers[*node.Name].ServiceEntry
+    return node.Peers[*node.Name].entry
 }
 
 func (node *Node) Shutdown() {
