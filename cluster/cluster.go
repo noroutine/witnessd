@@ -54,23 +54,35 @@ func (c *Cluster) Get(key string) []byte {
     return make([]byte, 0, 0)
 }
 
-func (c *Cluster) Receive(m *Message) error {
-    log.Println("Receievd", string(m.Load))
+func (c *Cluster) Receive(from *net.UDPAddr, m *Message) error {
+    log.Println("Received", string(m.Load), "from", from)
     return nil
 }
 
-func (c *Cluster) Send(peer string, m *Message) error {
+func (c *Cluster) Ping(peer string) error {
     p, ok := c.proxy.Peers[peer]
     if !ok {
         return errors.New(fmt.Sprintf("Peer not available: %s", peer))
     }
 
-    log.Println("Sending", string(m.Load), "to", *p.HostName)
-    udpCl, err := NewClient(&net.UDPAddr{
+    targetAddr := &net.UDPAddr{
         IP: p.GetAddrIPv4(),
         Port: p.Port,
-    })
+    }
 
+    return c.Send(targetAddr, &Message{
+        Version: 1,
+        Type: PING,
+        Operation: 0,
+        Length: 0,
+        Load: make([]byte, 0, 0),
+    })
+}
+
+func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {
+    log.Println("Sending", string(m.Load), "to", to)
+
+    udpCl, err := NewClient(to)
     if err != nil {
         return err
     }

@@ -6,7 +6,11 @@ import (
 )
 
 type MessageReceiver interface {
-    Receive(*Message) error
+    Receive(*net.UDPAddr, *Message) error
+}
+
+type MessageSender interface {
+    Send(*net.UDPAddr, *Message) error
 }
 
 type Server struct {
@@ -54,7 +58,7 @@ func (s *Server) serve(c *net.UDPConn) {
     buf := make([]byte, 65536)
     
     for !s.shouldShutdown {
-        n, from, err := c.ReadFrom(buf)
+        n, from, err := c.ReadFromUDP(buf)
         if err != nil {
             log.Fatalf("Error reading from UDP socket %v\n", c)
             continue
@@ -65,11 +69,11 @@ func (s *Server) serve(c *net.UDPConn) {
     }
 }
 
-func (s *Server) handlePacket(packet []byte, from net.Addr) error {
+func (s *Server) handlePacket(packet []byte, from *net.UDPAddr) error {
     m, err := Unmarshall(packet)
     if err != nil {
         return err
     }
 
-    return s.receiver.Receive(m)
+    return s.receiver.Receive(from, m)
 }
