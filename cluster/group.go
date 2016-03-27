@@ -46,15 +46,15 @@ func NewNode(domain string, name string) *Node {
 }
 
 func (node *Node) DiscoverPeers() {
+
     resolver, err := bonjour.NewResolver(nil)
     if err != nil {
-        log.Println("Failed to initialize resolver:", err.Error())
-        return
+        log.Fatal("Failed to initialize resolver:", err.Error())
     }
 
     results := make(chan *bonjour.ServiceEntry)
-    err = resolver.Browse(ServiceType, *node.Domain, results)
 
+    err = resolver.Browse(ServiceType, *node.Domain, results)
     if err != nil {
         log.Println("Failed to browse:", err.Error())
         return
@@ -90,6 +90,7 @@ L:
                 }
             }
         case <- time.After(browseWindow):
+            resolver.Exit <- true
             break L
         }
     }

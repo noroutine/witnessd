@@ -55,7 +55,7 @@ func main() {
         }
     }()
 
-    var node = cluster.NewNode("local.", opts.name)
+    node := cluster.NewNode("local.", opts.name)
     node.Port = opts.port
 
     var cl *cluster.Cluster

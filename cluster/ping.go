@@ -61,6 +61,7 @@ func (a *PingActivity) Client() *fsa.FSA {
             go func(ch chan int) {
                 <- time.After(100*time.Millisecond)
                 ch <- TIMEOUT
+                log.Println("TIMEOUT")
                 close(ch)
             }(pingTimeoutCh)
             return pingTimeoutCh
