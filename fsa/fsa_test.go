@@ -15,7 +15,7 @@ func TestMain(m *testing.M) {
 func TestTrivial(t *testing.T) {
     trivial := New(func(state, input int) int {
         return input
-    }, NeverTerminates())
+    }, NeverTerminates(), NeverTimesOut())
 
     go func() {
         trivial.Send(4)
@@ -34,7 +34,7 @@ func TestTrivial(t *testing.T) {
 func TestTermination(t *testing.T) {
     trivial := New(func(state, input int) int {
         return input
-    }, TerminatesOn(4, 5))
+    }, TerminatesOn(4, 5), NeverTimesOut())
 
     go func() {
         trivial.Send(5)

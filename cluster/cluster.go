@@ -56,6 +56,7 @@ func (c *Cluster) Get(key string) []byte {
 
 func (c *Cluster) Receive(from *net.UDPAddr, m *Message) error {
     log.Println("Received", string(m.Load), "from", from)
+    NewPingActivity(nil, c).Client()
     return nil
 }
 
@@ -70,13 +71,12 @@ func (c *Cluster) Ping(peer string) error {
         Port: p.Port,
     }
 
-    return c.Send(targetAddr, &Message{
-        Version: 1,
-        Type: PING,
-        Operation: 0,
-        Length: 0,
-        Load: make([]byte, 0, 0),
-    })
+    clientPingAutomat := NewPingActivity(targetAddr, c).Client()
+    clientPingAutomat.Send(0)
+    clientPingAutomat.Send(0)
+    clientPingAutomat.Send(3)
+    <- clientPingAutomat.Result
+    return nil
 }
 
 func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {

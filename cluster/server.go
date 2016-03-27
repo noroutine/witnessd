@@ -5,14 +5,6 @@ import (
     "log"
 )
 
-type MessageReceiver interface {
-    Receive(*net.UDPAddr, *Message) error
-}
-
-type MessageSender interface {
-    Send(*net.UDPAddr, *Message) error
-}
-
 type Server struct {
     ipv4conn *net.UDPConn
     ipv6conn *net.UDPConn

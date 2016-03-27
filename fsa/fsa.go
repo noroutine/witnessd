@@ -35,15 +35,19 @@ func TerminatesOn(states ...int) TerminateFunc {
     }
 }
 
-func New(e TransitionFunc, end TerminateFunc) (a *FSA) {    
+func NeverTimesOut() TimeoutFunc {
+    return func(int) chan int {
+        return neverWritten
+    }
+}
+
+func New(e TransitionFunc, end TerminateFunc, tout TimeoutFunc) (a *FSA) {    
     a = &FSA{
         Result: make(chan int),
         state: 0,
         input: make(chan int),
         exec: e,
-        timeout: func(int) chan int {
-            return neverWritten
-        },
+        timeout: tout,
         end: end,
         term: make(chan bool),
     }
