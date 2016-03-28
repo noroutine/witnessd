@@ -17,24 +17,20 @@ const (
     ERROR     = iota
 )
 
-type ClientPingActivity struct {
+type PingActivity struct {
     Result chan int
     c *Cluster
     fsa *fsa.FSA
 }
 
-type ServerPingActivity struct {
-    c *Cluster
-}
-
-func NewPingClient(c *Cluster) *ClientPingActivity {
-    return &ClientPingActivity{
+func NewPingActivity(c *Cluster) *PingActivity {
+    return &PingActivity{
         Result: make(chan int, 1),
         c: c,
         fsa: nil,
     }
 }
-func (a *ClientPingActivity) Receive(from *net.UDPAddr, m *Message) error {
+func (a *PingActivity) Receive(from *net.UDPAddr, m *Message) error {
     switch m.Operation {
         case 0:
             pongAddr, err := a.c.GetPeerAddr(string(m.Load))
@@ -56,7 +52,7 @@ func (a *ClientPingActivity) Receive(from *net.UDPAddr, m *Message) error {
     return nil
 }
 
-func (a *ClientPingActivity) Run(target string) {
+func (a *PingActivity) Run(target string) {
     timeoutFunc := func(state int) (<-chan time.Time, func(int) int) {
         if state == WAIT_PONG {
             return time.After(100*time.Millisecond), func(s int) int {

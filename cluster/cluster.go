@@ -14,7 +14,7 @@ type Cluster struct {
     Name string
     OrderId uint64
     Peers []string      // in contrast to proxy.Peers, this is stable ordered ring
-    pingActivity *ClientPingActivity
+    pingActivity *PingActivity
 }
 
 func NewVia(node *Node) (c *Cluster, err error) {
@@ -27,7 +27,7 @@ func NewVia(node *Node) (c *Cluster, err error) {
         Name: *node.Group,
     }
 
-    c.pingActivity = NewPingClient(c)
+    c.pingActivity = NewPingActivity(c)
     return c, nil
 }
 
