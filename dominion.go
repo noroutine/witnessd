@@ -27,9 +27,8 @@ func main() {
     opts := Options{}
 
     flag.IntVar(&opts.port, "port", cluster.DefaultPort, "client API port")
-    flag.StringVar(&opts.name, "name", "Player", "name of the player")
+    flag.StringVar(&opts.name, "name", "", "name of the player")
     flag.StringVar(&opts.join, "join", "", "name of the group of the node")
-    flag.BoolVar(&opts.announce, "announce", false, "auto announce")
     flag.Parse()
 
     if opts.port <= 0 || opts.port > 65535 {
@@ -37,7 +36,17 @@ func main() {
         os.Exit(42)
     }
 
+    opts.name = strings.TrimSpace(opts.name)
+    if len(opts.name) == 0 {
+        fmt.Printf("Must provide name, see --help\n")
+        os.Exit(42)
+    }
+
     opts.join = strings.TrimSpace(opts.join)
+    if len(opts.join) == 0 {
+        fmt.Printf("Must provide group, see --help\n")
+        os.Exit(42)
+    }
 
     client := protocol.NewClient(fmt.Sprintf(":%d", opts.port), opts.name)
     go client.Serve()
@@ -57,23 +66,24 @@ func main() {
 
     node := cluster.NewNode("local.", opts.name)
     node.Port = opts.port
-
-    var cl *cluster.Cluster
-
-    if len(opts.join) > 0 {
-        node.Group = &opts.join
-    }
+    node.Group = &opts.join
 
     node.StartDiscovery()
+    node.AnnouncePresence()
 
-    if opts.announce {
-        node.AnnouncePresence()
+    cl, err := cluster.NewVia(node)
+    if err != nil {
+        log.Fatal(fmt.Sprintln("Cannot start cluster", err))
     }
 
     go func() {
         for {
             select {
             case peer := <- node.Joined:
+                if *peer.Name == *node.Name {
+                    // stupid but anyways: once I notice I joined, I connect to cluster :D
+                    cl.Connect()
+                }
                 log.Println(*peer.Name, "joined")
             case peer := <- node.Left:
                 log.Println(*peer.Name, "left")
@@ -99,7 +109,7 @@ func main() {
         fmt.Printf("Your peers in group %s:\n", *node.Group)
 
         for name, peer := range node.Peers {
-            fmt.Printf("%s (%s:%d)\n", name, *peer.HostName, peer.Port)
+            fmt.Printf("%s (%s:%d)\n", name, peer.GetAddrIPv4(), peer.Port)
         }
     })
 
@@ -111,14 +121,6 @@ func main() {
         for name, data := range node.Groups {
             fmt.Printf("%s (%d members)\n", name, data.SeenMembers)
         }
-    })
-
-    repl.Register("announce", func(args []string) {
-        node.AnnouncePresence()
-    })
-
-    repl.Register("denounce", func(args []string) {
-        node.Shutdown()
     })
 
     repl.Register("group", func(args []string) {
@@ -144,23 +146,7 @@ func main() {
 
     repl.Register("leave", func(args []string) {
         node.AnnounceGroup(nil)
-    })
-
-    repl.Register("cluster_start", func(args []string) {
-        var err error
-        cl, err = cluster.NewVia(node)
-        if err != nil {
-            fmt.Println(err)
-        }
-
-        cl.Connect()
-    })
-
-    repl.Register("cluster_stop", func(args []string) {
-        if cl != nil {
-            cl.Disconnect()
-            cl = nil            
-        }
+        cl.Disconnect()
     })
 
     repl.Register("ping", func(args []string) {
@@ -177,7 +163,6 @@ func main() {
             default:
                 log.Println("Unknown result", result)
         }
-
     })
 
     repl.Register("help", func(args []string) {
@@ -190,9 +175,10 @@ func main() {
             fmt.Println("You are now", name)
             repl.Prompt = name + "> "
             client.PlayerID = name
+            cl.Disconnect()
             node.AnnounceName(name)
         } else {
-            fmt.Println(node.Name)
+            fmt.Println(*node.Name)
         }
     })
 

@@ -95,21 +95,22 @@ L:
         }
     }
 
+    oldPeers := node.Peers
+    node.Peers = ps
+    node.Groups = gs
+
     // find who left
-    for name, peer := range node.Peers {
+    for name, peer := range oldPeers {
         if _, ok := ps[name]; !ok {
             node.Left <- peer
         }
     }
     // find who joined
     for name, peer := range ps {
-        if _, ok := node.Peers[name]; !ok {
+        if _, ok := oldPeers[name]; !ok {
             node.Joined <- peer
         }
     }
-
-    node.Peers = ps
-    node.Groups = gs
 }
 
 func (node *Node) StartDiscovery() {

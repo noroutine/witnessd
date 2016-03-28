@@ -38,25 +38,30 @@ func (s *Server) Start() {
 
 func (s *Server) Shutdown() {
     s.shouldShutdown = true
+
+    if s.ipv6conn != nil {
+        s.ipv6conn.Close()
+    }
+
+    if s.ipv4conn != nil {
+        s.ipv4conn.Close()
+    }
 }
 
 func (s *Server) serve(c *net.UDPConn) {
     if c == nil {
         return
     }
-    
-    defer c.Close()
 
     buf := make([]byte, 65536)
     
-    for !s.shouldShutdown {
+    for {
         n, from, err := c.ReadFromUDP(buf)
         if err != nil {
-            log.Fatalf("Error reading from UDP socket %v\n", c)
             continue
         }
         if err := s.handlePacket(buf[:n], from); err != nil {
-            log.Printf("[ERR] cluster: Failed to handle query: %v", err)
+            log.Printf("[ERR] cluster: Failed to handle query: %v\n", err)
         }
     }
 }

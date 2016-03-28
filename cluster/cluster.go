@@ -33,6 +33,7 @@ func NewVia(node *Node) (c *Cluster, err error) {
 
 func (c *Cluster) Connect() {
     // start listening on the DHT
+    c.Name = *c.proxy.Group
     serviceEntry := c.proxy.GetServiceEntry()
     c.Server = NewServer(serviceEntry.AddrIPv4, serviceEntry.AddrIPv6, c.proxy.Port, c)
     c.Server.Start()
@@ -41,8 +42,9 @@ func (c *Cluster) Connect() {
 }
 
 func (c *Cluster) Disconnect() {
-    if c.proxy != nil {
-        c.proxy = nil
+    if c.Server != nil {
+        c.Server.Shutdown()
+        c.Server = nil
     }
 }
 

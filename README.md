@@ -33,12 +33,10 @@ Just type
 So far it's not much
 
     Usage of ./dominion:
-      -announce
-            auto announce
       -join string
             name of the group of the node
       -name string
-            name of the player (default "Player")
+            name of the player
       -port int
             client API port (default 9999)
 
