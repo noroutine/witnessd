@@ -3,46 +3,87 @@ package cluster
 import (
     "log"
     "net"
-    "time"
     "github.com/noroutine/dominion/fsa"
 )
 
-type PingActivity struct {
+type ClientPingActivity struct {
+    pong chan bool
     c *Cluster
-    target *net.UDPAddr
+    fsa *fsa.FSA
 }
 
-func NewPingActivity(target *net.UDPAddr, c *Cluster) *PingActivity {
-    return &PingActivity{
+type ServerPingActivity struct {
+    c *Cluster
+}
+
+const (
+    START     = iota
+    SENT_PING = iota
+    WAIT_PONG = iota
+    RCVD_PONG = iota
+    TIMEOUT   = iota
+    ERROR     = iota
+)
+
+func NewPingClient(c *Cluster) *ClientPingActivity {
+    return &ClientPingActivity{
         c: c,
-        target: target,
+        fsa: nil,
     }
 }
+func (a *ClientPingActivity) Receive(from *net.UDPAddr, m *Message) error {
+    log.Println("Received ping from", from.IP)
+    switch m.Operation {
+        case 0:
 
-func (a *PingActivity) Client() *fsa.FSA {
-    const (
-        START     = iota
-        SENT_PING = iota
-        WAIT_PONG = iota
-        RCVD_PONG = iota
-        TIMEOUT   = iota
-        ERROR     = iota
-    )
+            pongAddr, err := a.c.GetPeerAddr(string(m.Load))
+            if err != nil {
+                log.Fatal("Cannot pong peer")
+            }
 
-    return fsa.New(func(state, input int) int {
-        switch{
-        case state == START && input == START:
-            log.Println("START")
-            // send ping 
-            a.c.Send(a.target, &Message{
+            // send pong back
+            a.c.Send(pongAddr, &Message{
                 Version: 1,
                 Type: PING,
-                Operation: 0,
+                Operation: 1,   // pong
                 Length: 0,
                 Load: make([]byte, 0, 0),
             })
+        case 1:
+            if a.fsa != nil {
+                a.fsa.Send(RCVD_PONG)
+            } else {
+                log.Fatal("client automat is null")
+            }
+    }
+    return nil
+}
+
+func (a *ClientPingActivity) Run(target string) *fsa.FSA {
+
+    a.fsa = fsa.New(func(state, input int) int {
+        switch{
+        case state == START && input == START:
+            log.Println("START")
+
+            targetAddr, err := a.c.GetPeerAddr(target)
+            if err != nil {
+                log.Fatal("Cannot ping peer")
+            }
+
+            // send ping 
+            a.c.Send(targetAddr, &Message{
+                Version: 1,
+                Type: PING,
+                Operation: 0,   // ping
+                Length: uint16(len(*a.c.proxy.Name)),
+                Load: []byte(*a.c.proxy.Name),
+            })
+
+            go a.fsa.Send(SENT_PING)
+
             return SENT_PING
-        case state == SENT_PING:
+        case state == SENT_PING && input == SENT_PING:
             log.Println("SENT_PING")
             return WAIT_PONG
         case state == WAIT_PONG && input == RCVD_PONG:
@@ -55,22 +96,27 @@ func (a *PingActivity) Client() *fsa.FSA {
             log.Fatal("ERROR")
         }
         return ERROR
-    }, fsa.TerminatesOn(TIMEOUT, RCVD_PONG, ERROR), func(state int) chan int {
-        if state == WAIT_PONG {
-            pingTimeoutCh := make(chan int)
-            go func(ch chan int) {
-                <- time.After(100*time.Millisecond)
-                ch <- TIMEOUT
-                log.Println("TIMEOUT")
-                close(ch)
-            }(pingTimeoutCh)
-            return pingTimeoutCh
-        }
-        return make(chan int, 0)
-    })
+    }, fsa.TerminatesOn(TIMEOUT, RCVD_PONG, ERROR), fsa.NeverTimesOut())
+
+    // func(state int) chan int {
+    //     if state == WAIT_PONG {
+    //         pingTimeoutCh := make(chan int)
+    //         go func(ch chan int) {
+    //             <- time.After(100*time.Millisecond)
+    //             ch <- TIMEOUT
+    //             log.Println("TIMEOUT")
+    //             close(ch)
+    //         }(pingTimeoutCh)
+    //         return pingTimeoutCh
+    //     }
+    //     return make(chan int, 0)
+    // })
+
+    a.fsa.Send(START)
+    return a.fsa
 }
 
-func (a *PingActivity) Server() *fsa.FSA {
+func (a ServerPingActivity) Run() *fsa.FSA {
     const (
         PONG_SENT = iota
     )

@@ -15,6 +15,7 @@ type Cluster struct {
     Name string
     OrderId uint64
     Peers []string      // in contrast to proxy.Peers, this is stable ordered ring
+    pingActivity *ClientPingActivity
 }
 
 func NewVia(node *Node) (c *Cluster, err error) {
@@ -22,10 +23,13 @@ func NewVia(node *Node) (c *Cluster, err error) {
         return nil, errors.New("Node is not ready")
     }
 
-    return &Cluster{
+    c = &Cluster{
         proxy: node,
         Name: *node.Group,
-    }, nil
+    }
+
+    c.pingActivity = NewPingClient(c)
+    return c, nil
 }
 
 func (c *Cluster) Connect() {
@@ -54,28 +58,13 @@ func (c *Cluster) Get(key string) []byte {
     return make([]byte, 0, 0)
 }
 
-func (c *Cluster) Receive(from *net.UDPAddr, m *Message) error {
-    log.Println("Received", string(m.Load), "from", from)
-    NewPingActivity(nil, c).Client()
-    return nil
+func (c *Cluster) Receive(from *net.UDPAddr, m *Message) error {    
+    return c.pingActivity.Receive(from, m)
 }
 
 func (c *Cluster) Ping(peer string) error {
-    p, ok := c.proxy.Peers[peer]
-    if !ok {
-        return errors.New(fmt.Sprintf("Peer not available: %s", peer))
-    }
-
-    targetAddr := &net.UDPAddr{
-        IP: p.GetAddrIPv4(),
-        Port: p.Port,
-    }
-
-    clientPingAutomat := NewPingActivity(targetAddr, c).Client()
-    clientPingAutomat.Send(0)
-    clientPingAutomat.Send(0)
-    clientPingAutomat.Send(3)
-    <- clientPingAutomat.Result
+    pingAutomat := c.pingActivity.Run(peer)
+    <- pingAutomat.Result
     return nil
 }
 
@@ -90,6 +79,18 @@ func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {
     defer udpCl.Close()
 
     return udpCl.Send(m)
+}
+
+func (c *Cluster) GetPeerAddr(peer string) (*net.UDPAddr, error) {
+    p, ok := c.proxy.Peers[peer]
+    if !ok {
+        return nil, errors.New(fmt.Sprintf("Peer not available: %s", peer))
+    }
+
+    return &net.UDPAddr{
+        IP: p.GetAddrIPv4(),
+        Port: p.Port,
+    }, nil
 }
 
 func keySlot(key string, slots uint64) uint64 {
