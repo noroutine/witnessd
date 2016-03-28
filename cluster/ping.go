@@ -12,7 +12,6 @@ const (
     SENT_PING = iota
     WAIT_PONG = iota
     RCVD_PONG = iota
-    NO_PONG   = iota
     SUCCESS   = iota
     TIMEOUT   = iota
     ERROR     = iota
