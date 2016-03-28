@@ -5,14 +5,27 @@ import (
     "log"
 )
 
+type Request struct {
+    From *net.UDPAddr
+    Message *Message
+}
+
+type Handler interface {
+    Handle(*Request) error
+}
+
+type Router interface {
+    Route(*Request) (Handler, error)
+}
+
 type Server struct {
     ipv4conn *net.UDPConn
     ipv6conn *net.UDPConn
     shouldShutdown bool
-    receiver MessageReceiver
+    router Router
 }
 
-func NewServer(ip4 net.IP, ip6 net.IP, port int, mr MessageReceiver) *Server {
+func NewServer(ip4 net.IP, ip6 net.IP, port int, r Router) *Server {
     l4, err := net.ListenUDP("udp4", &net.UDPAddr{ IP: ip4, Port: port })
     if err != nil {
         log.Fatal(err)
@@ -27,7 +40,7 @@ func NewServer(ip4 net.IP, ip6 net.IP, port int, mr MessageReceiver) *Server {
         ipv4conn: l4,
         ipv6conn: l6,
         shouldShutdown: false,
-        receiver: mr,
+        router: r,
     }
 }
 
@@ -58,19 +71,30 @@ func (s *Server) serve(c *net.UDPConn) {
     for {
         n, from, err := c.ReadFromUDP(buf)
         if err != nil {
+             log.Println(err)
+             continue
+        }
+
+        m, err := Unmarshall(buf[:n])
+        if err != nil {
+            log.Println(err)
             continue
         }
-        if err := s.handlePacket(buf[:n], from); err != nil {
-            log.Printf("[ERR] cluster: Failed to handle query: %v\n", err)
+
+        r := &Request{
+            From: from,
+            Message: m,
+        }
+
+        h, err := s.router.Route(r)
+        if err != nil {
+            log.Println(err)
+            continue
+        }
+
+        err = h.Handle(r)
+        if err != nil {
+            log.Println(err)
         }
     }
-}
-
-func (s *Server) handlePacket(packet []byte, from *net.UDPAddr) error {
-    m, err := Unmarshall(packet)
-    if err != nil {
-        return err
-    }
-
-    return s.receiver.Receive(from, m)
 }

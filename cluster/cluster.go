@@ -5,6 +5,7 @@ import (
     "hash/fnv"
     "fmt"
     "net"
+    "container/list"
     "github.com/noroutine/ffhash"
 )
 
@@ -14,7 +15,7 @@ type Cluster struct {
     Name string
     OrderId uint64
     Peers []string      // in contrast to proxy.Peers, this is stable ordered ring
-    pingActivity *PingActivity
+    handlers *list.List
 }
 
 func NewVia(node *Node) (c *Cluster, err error) {
@@ -25,9 +26,9 @@ func NewVia(node *Node) (c *Cluster, err error) {
     c = &Cluster{
         proxy: node,
         Name: *node.Group,
+        handlers: list.New(),
     }
-
-    c.pingActivity = NewPingActivity(c)
+    c.handlers.PushBack(NewPongActivity(c))
     return c, nil
 }
 
@@ -59,13 +60,25 @@ func (c *Cluster) Get(key string) []byte {
     return make([]byte, 0, 0)
 }
 
-func (c *Cluster) Receive(from *net.UDPAddr, m *Message) error {    
-    return c.pingActivity.Receive(from, m)
+func (c *Cluster) Route(r *Request) (h Handler, err error) {
+    for e := c.handlers.Front(); e != nil; e = e.Next() {
+        h, err := e.Value.(Router).Route(r)
+        if h != nil && err == nil {
+            return h, nil
+        }
+    }
+
+    return nil, errors.New("Not supported")
 }
 
 func (c *Cluster) Ping(peer string) int {
-    c.pingActivity.Run(peer)
-    return <- c.pingActivity.Result
+    activity := NewPingActivity(c)
+
+    e := c.handlers.PushBack(activity)
+    defer c.handlers.Remove(e)
+
+    activity.Run(peer)
+    return <- activity.Result
 }
 
 func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {

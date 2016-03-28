@@ -2,20 +2,59 @@ package cluster
 
 import (
     "log"
-    "net"
+    "fmt"
     "time"
+    "errors"
     "github.com/noroutine/dominion/fsa"
 )
 
 const (
     START     = iota
-    SENT_PING = iota
-    WAIT_PONG = iota
-    RCVD_PONG = iota
-    SUCCESS   = iota
-    TIMEOUT   = iota
-    ERROR     = iota
+    SENT_PING
+    WAIT_PONG
+    RCVD_PONG
+    SUCCESS
+    TIMEOUT
+    ERROR
 )
+
+type PongActivity struct {
+    c *Cluster
+}
+
+func NewPongActivity(c *Cluster) *PongActivity {
+    return &PongActivity{
+        c: c,
+    }
+}
+
+func (a *PongActivity) Route(r *Request) (h Handler, err error) {
+    // reply to ping with pong
+    if r.Message.Type == PING && r.Message.Operation == 0 {
+        return a, nil
+    }
+
+    return nil, errors.New("Cannot handle this")
+}
+
+func (a *PongActivity) Handle(r *Request) error {
+    peer := string(r.Message.Load)
+    pongAddr, err := a.c.GetPeerAddr(peer)
+    if err != nil {
+       return errors.New(fmt.Sprintf("Cannot pong peer %s", peer))
+    }
+
+    // send pong back
+    go a.c.Send(pongAddr, &Message{
+        Version: 1,
+        Type: PING,
+        Operation: 1,   // pong
+        Length: 0,
+        Load: make([]byte, 0, 0),
+    })
+
+    return nil
+}
 
 type PingActivity struct {
     Result chan int
@@ -30,25 +69,17 @@ func NewPingActivity(c *Cluster) *PingActivity {
         fsa: nil,
     }
 }
-func (a *PingActivity) Receive(from *net.UDPAddr, m *Message) error {
-    switch m.Operation {
-        case 0:
-            pongAddr, err := a.c.GetPeerAddr(string(m.Load))
-            if err != nil {
-                log.Fatal("Cannot pong peer")
-            }
 
-            // send pong back
-            go a.c.Send(pongAddr, &Message{
-                Version: 1,
-                Type: PING,
-                Operation: 1,   // pong
-                Length: 0,
-                Load: make([]byte, 0, 0),
-            })
-        case 1:
-            go a.fsa.Send(RCVD_PONG)
+func (a *PingActivity) Route(r *Request) (h Handler, err error)  {
+    if r.Message.Type == PING && r.Message.Operation == 1 {
+        return a, nil
     }
+
+    return nil, errors.New("Cannot handle this")
+}
+
+func (a *PingActivity) Handle(r *Request) error {
+    go a.fsa.Send(RCVD_PONG)
     return nil
 }
 

@@ -7,9 +7,9 @@ import (
 type OperationType byte
 
 const (
-    NOOP        OperationType = iota
-    PING        OperationType = iota            // ping operations
-    JOIN        OperationType = iota            // join operations
+    NOOP  OperationType = iota
+    PING                          // ping operations
+    JOIN                          // join operations
 )
 
 type Message struct {
