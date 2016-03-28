@@ -1,8 +1,12 @@
-// FSA - finite-state automatae
+// FSA - finite-state automatae, time bound
 package fsa
 
+import (
+    "time"
+)
+
 type TransitionFunc func(int, int) int
-type TimeoutFunc func(int) chan int
+type TimeoutFunc func(int) (<-chan time.Time, func(int) int)
 type TerminateFunc func(int) bool
 
 type FSA struct  {
@@ -15,7 +19,7 @@ type FSA struct  {
     term chan bool
 }
 
-var neverWritten chan int = make(chan int, 0)
+var neverTicks chan time.Time = make(chan time.Time, 0)
 
 func NeverTerminates() TerminateFunc {
     return func(s int) bool {
@@ -36,8 +40,10 @@ func TerminatesOn(states ...int) TerminateFunc {
 }
 
 func NeverTimesOut() TimeoutFunc {
-    return func(int) chan int {
-        return neverWritten
+    return func(int) (<-chan time.Time, func(int) int) {
+        return neverTicks, func(s int) int {
+            return s
+        }
     }
 }
 
@@ -57,12 +63,15 @@ func New(e TransitionFunc, end TerminateFunc, tout TimeoutFunc) (a *FSA) {
 
 func (a *FSA) run() {
     for {
+        timeTick, tfunc := a.timeout(a.state)
         select {
         case event := <- a.input: a.state = a.exec(a.state, event)
-        case tstate := <- a.timeout(a.state): a.state = tstate
+        case <- timeTick: a.state = tfunc(a.state)
         case <- a.term:
             a.Result <- a.state
             close(a.Result)
+            close(a.input)
+            close(a.term)
             return
         }
 

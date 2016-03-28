@@ -168,7 +168,16 @@ func main() {
             fmt.Println("Usage: ping <peer>")
         }
 
-        cl.Ping(args[0])
+        result := cl.Ping(args[0])
+
+        switch result {
+            case cluster.TIMEOUT: fmt.Println("Timeout")
+            case cluster.ERROR: fmt.Println("Error")
+            case cluster.SUCCESS: fmt.Println("Success")
+            default:
+                log.Println("Unknown result", result)
+        }
+
     })
 
     repl.Register("help", func(args []string) {

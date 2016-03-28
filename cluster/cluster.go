@@ -3,7 +3,6 @@ package cluster
 import (
     "errors"
     "hash/fnv"
-    "log"
     "fmt"
     "net"
     "github.com/noroutine/ffhash"
@@ -62,15 +61,12 @@ func (c *Cluster) Receive(from *net.UDPAddr, m *Message) error {
     return c.pingActivity.Receive(from, m)
 }
 
-func (c *Cluster) Ping(peer string) error {
-    pingAutomat := c.pingActivity.Run(peer)
-    <- pingAutomat.Result
-    return nil
+func (c *Cluster) Ping(peer string) int {
+    c.pingActivity.Run(peer)
+    return <- c.pingActivity.Result
 }
 
 func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {
-    log.Println("Sending", string(m.Load), "to", to)
-
     udpCl, err := NewClient(to)
     if err != nil {
         return err
