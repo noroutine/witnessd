@@ -2,11 +2,9 @@ package cluster
 
 import (
     "errors"
-    "hash/fnv"
     "fmt"
     "net"
     "container/list"
-    "github.com/noroutine/ffhash"
 )
 
 type Cluster struct {
@@ -102,11 +100,4 @@ func (c *Cluster) GetPeerAddr(peer string) (*net.UDPAddr, error) {
         IP: p.GetAddrIPv4(),
         Port: p.Port,
     }, nil
-}
-
-func keySlot(key string, slots uint64) uint64 {
-    fnv1a := fnv.New64a()
-    fnv1a.Write([]byte(key))
-    keyHash := fnv1a.Sum64()
-    return ffhash.Sum64(keyHash, slots)
 }
