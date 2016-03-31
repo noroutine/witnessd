@@ -50,7 +50,27 @@ func (c *Cluster) Disconnect() {
 }
 
 func (c *Cluster) PrimaryNode(o Object) *Peer {
-    return nil
+    peers := PeerSorter(c.proxy.Peers).ByHash().Sort()
+    objectHash := o.Hash()
+
+    l, r := 0, len(peers)
+    left, right := peers[l], peers[r]
+    if Clockwise(right.Hash(), objectHash, left.Hash()) {
+        return right
+    }
+
+    var c int
+    for r - l > 1 {
+        c = l + (r - l) >> 1
+
+        if Clockwise(peers[c].Hash(), objectHash, peers[r].Hash()) {
+            l = c
+        } else {
+            r = c
+        }
+    }
+
+    return peers[l]
 }
 
 // TODO: put the object into cluster DHT
