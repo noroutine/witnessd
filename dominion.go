@@ -109,14 +109,7 @@ func main() {
 
         fmt.Printf("Your peers in group %s:\n", *node.Group)
 
-        peers := make([]cluster.Peer, 0, len(node.Peers))
-        for _, p := range node.Peers {
-            peers = append(peers, p)
-        }
-
-        peers = cluster.PeerSorter(peers).ByHash().Sort()
-
-        for _, p := range peers {
+        for _, p := range cl.Peers() {
             peerHash := p.Hash()
             peerHashInt := new(big.Int).SetBytes(peerHash)
             fmt.Printf("%s (%s:%d) %x (%v)\n", *p.Name, p.GetAddrIPv4(), p.Port, peerHash, peerHashInt)

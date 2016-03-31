@@ -34,11 +34,11 @@ func (p *Peer) Hash() []byte {
 }
 
 type peerSorter struct {
-    peers []Peer
+    peers []*Peer
     less func (*Peer, *Peer) bool
 }
 
-func PeerSorter(ps []Peer) *peerSorter {
+func PeerSorter(ps []*Peer) *peerSorter {
     return &peerSorter{
         peers: ps,
         less: nil,
@@ -55,7 +55,7 @@ func (sorter *peerSorter) ByHash() *peerSorter {
     return sorter
 }
 
-func (sorter *peerSorter) Sort() []Peer {
+func (sorter *peerSorter) Sort() []*Peer {
     sort.Sort(sorter)
     return sorter.peers
 }
@@ -70,5 +70,5 @@ func (hs *peerSorter) Swap(i, j int) {
 }
 
 func (sorter *peerSorter) Less(i, j int) bool {
-    return sorter.less(&sorter.peers[i], &sorter.peers[j])
+    return sorter.less(sorter.peers[i], sorter.peers[j])
 }

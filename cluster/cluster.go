@@ -13,7 +13,6 @@ type Cluster struct {
     Server *Server
     Name string
     OrderId uint64
-    Peers []string      // in contrast to proxy.Peers, this is stable ordered ring
     handlers *list.List
 }
 
@@ -50,23 +49,22 @@ func (c *Cluster) Disconnect() {
 }
 
 func (c *Cluster) PrimaryNode(o Object) *Peer {
-    peers := PeerSorter(c.proxy.Peers).ByHash().Sort()
+    peers := PeerSorter(c.Peers()).ByHash().Sort()
     objectHash := o.Hash()
 
     l, r := 0, len(peers)
-    left, right := peers[l], peers[r]
-    if Clockwise(right.Hash(), objectHash, left.Hash()) {
-        return right
+    if Clockwise(peers[r].Hash(), objectHash, peers[l].Hash()) {
+        return peers[r]
     }
 
-    var c int
+    var m int
     for r - l > 1 {
-        c = l + (r - l) >> 1
+        m = l + (r - l) >> 1
 
-        if Clockwise(peers[c].Hash(), objectHash, peers[r].Hash()) {
-            l = c
+        if Clockwise(peers[m].Hash(), objectHash, peers[r].Hash()) {
+            l = m
         } else {
-            r = c
+            r = m
         }
     }
 
@@ -123,6 +121,17 @@ func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {
     defer udpCl.Close()
 
     return udpCl.Send(m)
+}
+
+func (c *Cluster) Peers() []*Peer {
+    // TODO: potential shared memory access
+    peersMap := c.proxy.Peers
+    peers := make([]*Peer, 0, len(peersMap))
+    for _, p := range peersMap {
+        peers = append(peers, &p)
+    }
+
+    return PeerSorter(peers).ByHash().Sort()
 }
 
 // Resolve cluster peer IP address by peer name

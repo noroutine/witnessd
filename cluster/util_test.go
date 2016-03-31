@@ -78,7 +78,7 @@ func TestClockwise(t *testing.T) {
     for i := range hashes {
         a, b, c := hashes[i], hashes[(i + 1) % len(hashes)], hashes[(i + 2) % len(hashes)]
 
-        if r, err := Clockwise(a, b, c); !r || err != nil  {
+        if ! Clockwise(a, b, c) {
             t.Error(fmt.Sprintf("failed clockwise at %d", i))
         }
     }
@@ -86,15 +86,8 @@ func TestClockwise(t *testing.T) {
     for i := range hashes {
         a, b, c := hashes[(i + 1) % len(hashes)], hashes[i], hashes[(i + 2) % len(hashes)]
 
-        if r, err := Clockwise(a, b, c); r || err != nil  {
+        if Clockwise(a, b, c) {
             t.Error(fmt.Sprintf("failed non-clockwise at %d", i))
-        }
-    }
-
-    {
-        a, b, c := hashes[0], hashes[0], hashes[0]
-        if _, err := Clockwise(a, b, c); err == nil {
-            t.Error("Equal values are not detected")
         }
     }
 }

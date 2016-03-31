@@ -1,7 +1,5 @@
 package cluster
 
-import "errors"
-
 /*
 
 Checks if three given hash values are in clockwise order on the hash ring
@@ -17,39 +15,19 @@ b, c, a         true
 c, a, b         true
 c, b, a         false
 
-if any of two are equal it's not possible to determine the result and error is returned
  */
-func Clockwise(a, b, c[]byte) (bool, error) {
+func Clockwise(a, b, c[]byte) bool {
     bc := CompareHashes(b, c)
-    if bc == 0 {
-        return false, errors.New("b == c")
-    }
 
     if bc < 0 {
         ba := CompareHashes(b, a)
         ac := CompareHashes(a, c)
 
-        if ba == 0 {
-            return false, errors.New("a == b")
-        }
-
-        if ac == 0 {
-            return false, errors.New("a == c")
-        }
-
-        return ! (ba < 0 && ac < 0), nil
+        return ! (ba < 0 && ac < 0)
     } else {
         ca := CompareHashes(c, a)
-        if ca == 0 {
-            return false, errors.New("a == c")
-        }
-
         ab := CompareHashes(a, b)
-        if ab == 0 {
-            return false, errors.New("a == b")
-        }
-
-        return ca < 0 && ab < 0, nil
+        return ca < 0 && ab < 0
     }
 }
 
