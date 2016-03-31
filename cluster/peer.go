@@ -9,6 +9,8 @@ import (
     "sort"
 )
 
+const hash_byte_len = 16        // 128 / 8
+
 type Peer struct {
     Domain *string
     Name *string

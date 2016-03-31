@@ -49,14 +49,24 @@ func (c *Cluster) Disconnect() {
     }
 }
 
-// TODO: put the object into cluster DHT
-func (c *Cluster) Put(key string, data []byte) {
-    panic("put data not implemented")
+func (c *Cluster) PrimaryNode(o Object) *Peer {
+    return nil
+}
 
+// TODO: put the object into cluster DHT
+func (c *Cluster) Put(o Object) {
+    // p := c.PrimaryNode(o)
+    // find the primary node
+    // send message
+    panic("put data not implemented")
 }
 
 // TODO: get the object into cluster DHT
-func (c *Cluster) Get(key string) []byte {
+func (c *Cluster) Get(key string) Object {
+    // calculate key
+    // find the primary node
+    // send message
+    // wait for response
     panic("get data not implemented")
 }
 
