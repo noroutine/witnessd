@@ -1,3 +1,4 @@
+// Cluster built on top of node group
 package cluster
 
 import (
@@ -16,6 +17,7 @@ type Cluster struct {
     handlers *list.List
 }
 
+// Create a cluster instance with node as a communication proxy
 func NewVia(node *Node) (c *Cluster, err error) {
     if ! node.IsOperational() {
         return nil, errors.New("Node is not ready")
@@ -30,6 +32,7 @@ func NewVia(node *Node) (c *Cluster, err error) {
     return c, nil
 }
 
+// Connects to the cluster and start responding for cluster communications
 func (c *Cluster) Connect() {
     // start listening on the DHT
     c.Name = *c.proxy.Group
@@ -40,6 +43,7 @@ func (c *Cluster) Connect() {
     // determine order id
 }
 
+// Disconnect from the cluster and stop responding to cluster communications
 func (c *Cluster) Disconnect() {
     if c.Server != nil {
         c.Server.Shutdown()
@@ -47,17 +51,18 @@ func (c *Cluster) Disconnect() {
     }
 }
 
+// TODO: put the object into cluster DHT
 func (c *Cluster) Put(key string, data []byte) {
-//    slot := keySlot(key, uint64(len(c.Peers)))
-    // send data to node
+    panic("put data not implemented")
+
 }
 
+// TODO: get the object into cluster DHT
 func (c *Cluster) Get(key string) []byte {
-//    slot := keySlot(key, uint64(len(c.Peers)))
-    // get data from node
-    return make([]byte, 0, 0)
+    panic("get data not implemented")
 }
 
+// Route cluster request to concrete handler, makes Cluster a Router
 func (c *Cluster) Route(r *Request) (h Handler, err error) {
     for e := c.handlers.Front(); e != nil; e = e.Next() {
         h, err := e.Value.(Router).Route(r)
@@ -69,6 +74,7 @@ func (c *Cluster) Route(r *Request) (h Handler, err error) {
     return nil, errors.New("Not supported")
 }
 
+// Ping another cluster peer
 func (c *Cluster) Ping(peer string) int {
     activity := NewPingActivity(c)
 
@@ -79,6 +85,7 @@ func (c *Cluster) Ping(peer string) int {
     return <- activity.Result
 }
 
+// Send cluster message as UDP packet
 func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {
     udpCl, err := NewClient(to)
     if err != nil {
@@ -90,6 +97,7 @@ func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {
     return udpCl.Send(m)
 }
 
+// Resolve cluster peer IP address by peer name
 func (c *Cluster) GetPeerAddr(peer string) (*net.UDPAddr, error) {
     p, ok := c.proxy.Peers[peer]
     if !ok {

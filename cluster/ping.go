@@ -1,3 +1,4 @@
+// Implementation of ping operation
 package cluster
 
 import (

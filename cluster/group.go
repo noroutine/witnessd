@@ -1,3 +1,4 @@
+// Lower level cluster node discovery through Bonjour
 package cluster;
 
 import (
@@ -45,6 +46,7 @@ func NewNode(domain string, name string) *Node {
     }
 }
 
+// One-time peers discovery over the network
 func (node *Node) DiscoverPeers() {
 
     resolver, err := bonjour.NewResolver(nil)
@@ -113,6 +115,7 @@ L:
     }
 }
 
+// Launches background periodical peer discovery
 func (node *Node) StartDiscovery() {
     if node.discoverLoopCh == nil {
         node.discoverLoopCh = make(chan int, 1)
@@ -129,6 +132,7 @@ func (node *Node) StartDiscovery() {
     }
 }
 
+// Stops background periodical peer discovery
 func (node *Node) StopDiscovery() {
     if node.discoverLoopCh != nil {
         node.discoverLoopCh <- 1
@@ -136,10 +140,12 @@ func (node *Node) StopDiscovery() {
     }
 }
 
+// Checks if periodical peer discovery active
 func (node *Node) IsDiscoveryActive() bool {
     return node.discoverLoopCh != nil
 }
 
+// Announce the node on the network
 func (node *Node) AnnouncePresence() {
     // Run registration (blocking call)
     if node.server == nil {
@@ -155,18 +161,22 @@ func (node *Node) AnnouncePresence() {
     }
 }
 
+// Check if the node is announced
 func (node *Node) IsAnnounced() bool {
     return node.server != nil
 }
 
+// Check if the node is part of the group
 func (node *Node) IsClustered() bool {
     return node.Group != nil
 }
 
+// Check if the node is operational - that is it is announced and joined some group
 func (node *Node) IsOperational() bool {
     return node.IsClustered() && node.IsAnnounced()
 }
 
+// Announce new node name
 func (node *Node) AnnounceName(newName string) {
     if node.server != nil {
         node.Shutdown()
@@ -177,6 +187,7 @@ func (node *Node) AnnounceName(newName string) {
     }
 }
 
+// Announce new node group
 func (node *Node) AnnounceGroup(newGroup *string) {
     node.Group = newGroup
     if (node.server != nil) {
@@ -184,10 +195,12 @@ func (node *Node) AnnounceGroup(newGroup *string) {
     }
 }
 
+// Get lower-level Bonjour service entry for the node
 func (node *Node) GetServiceEntry() *bonjour.ServiceEntry {
     return node.Peers[*node.Name].entry
 }
 
+// Shutdown the node, opposite of announcing
 func (node *Node) Shutdown() {
     if node.server != nil {
         node.server.Shutdown()

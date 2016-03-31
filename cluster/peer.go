@@ -1,3 +1,4 @@
+// Peer is what another node is to current node
 package cluster
 
 import (

@@ -1,3 +1,4 @@
+// Simple wrapper of UDP client that allows to send cluster messages over the network
 package cluster
 
 import (

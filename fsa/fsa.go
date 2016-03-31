@@ -5,8 +5,15 @@ import (
     "time"
 )
 
+// Transition function given input and state calculates new state for FSA
 type TransitionFunc func(int, int) int
+
+// Timeout function given state produces two values:
+//  1. the time channel that ticks when FSA shall trigger timeout for given state
+//  2. the transition function that calculates the next state for FSA in case of timeout
 type TimeoutFunc func(int) (<-chan time.Time, func(int) int)
+
+// terminate function given state determines if the FSA should stop execution
 type TerminateFunc func(int) bool
 
 type FSA struct  {
@@ -19,14 +26,17 @@ type FSA struct  {
     term chan bool
 }
 
-var neverTicks chan time.Time = make(chan time.Time, 0)
+// channel that is never written to
+var neverTicks <-chan time.Time = make(chan time.Time, 0)
 
+// Predefined function for building FSAs that never terminate automatically
 func NeverTerminates() TerminateFunc {
     return func(s int) bool {
         return false
     }
 }
 
+// Predefined function for buildings FSAs that terminate on reaching one of states
 func TerminatesOn(states ...int) TerminateFunc {
     var tss map[int]bool = make(map[int]bool, len(states))
     for _, ts := range states {
@@ -39,6 +49,7 @@ func TerminatesOn(states ...int) TerminateFunc {
     }
 }
 
+// Predefined timeout function for FSAs that never timeout in any state
 func NeverTimesOut() TimeoutFunc {
     return func(int) (<-chan time.Time, func(int) int) {
         return neverTicks, func(s int) int {
@@ -47,6 +58,7 @@ func NeverTimesOut() TimeoutFunc {
     }
 }
 
+// Create new FSA with given transition, terminate and timeout functions
 func New(e TransitionFunc, end TerminateFunc, tout TimeoutFunc) (a *FSA) {    
     a = &FSA{
         Result: make(chan int),
@@ -81,10 +93,12 @@ func (a *FSA) run() {
     }
 }
 
+// Send the input to FSA
 func (a *FSA) Send(input int) {
     a.input <- input
 }
 
+// Terminates FSA
 func (a *FSA) Terminate() {
     a.term <- true
 }

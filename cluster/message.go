@@ -1,3 +1,4 @@
+// Cluster message structure and marshalling
 package cluster
 
 import (
