@@ -39,8 +39,6 @@ func (c *Cluster) Connect() {
     serviceEntry := c.proxy.GetServiceEntry()
     c.Server = NewServer(serviceEntry.AddrIPv4, serviceEntry.AddrIPv6, c.proxy.Port, c)
     c.Server.Start()
-
-    // determine order id
 }
 
 // Disconnect from the cluster and stop responding to cluster communications

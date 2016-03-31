@@ -11,7 +11,6 @@ import (
     "github.com/noroutine/dominion/protocol"
     "github.com/noroutine/dominion/cluster"
     "math/big"
-    "sort"
 )
 
 const version = "0.0.7"
@@ -115,7 +114,7 @@ func main() {
             peers = append(peers, p)
         }
 
-        sort.Sort(sort.Reverse(cluster.PeersByHash(peers)))
+        peers = cluster.PeerSorter(peers).ByHash().Sort()
 
         for _, p := range peers {
             peerHash := p.Hash()

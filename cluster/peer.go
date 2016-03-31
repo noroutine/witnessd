@@ -6,6 +6,7 @@ import (
     "github.com/noroutine/bonjour"
     "github.com/reusee/mmh3"
     "math/big"
+    "sort"
 )
 
 type Peer struct {
@@ -30,28 +31,42 @@ func (p *Peer) Hash() []byte {
     return mmh3.Sum128([]byte(*p.Name))
 }
 
-type hashSorter struct {
+type peerSorter struct {
     peers []Peer
+    less func (*Peer, *Peer) bool
 }
 
-func PeersByHash(ps []Peer) *hashSorter {
-    return &hashSorter{
+func PeerSorter(ps []Peer) *peerSorter {
+    return &peerSorter{
         peers: ps,
+        less: nil,
     }
 }
 
-func (hs *hashSorter) Len() int {
+func (sorter *peerSorter) ByHash() *peerSorter {
+    sorter.less = func (p1, p2 *Peer) bool {
+        iHash := new(big.Int).SetBytes(p1.Hash())
+        jHash := new(big.Int).SetBytes(p2.Hash())
+        return iHash.Cmp(jHash) < 0
+    }
+
+    return sorter
+}
+
+func (sorter *peerSorter) Sort() []Peer {
+    sort.Sort(sorter)
+    return sorter.peers
+}
+
+func (hs *peerSorter) Len() int {
     return len(hs.peers)
 }
 
-func (hs *hashSorter) Swap(i, j int) {
+func (hs *peerSorter) Swap(i, j int) {
     ps := hs.peers
     ps[i], ps[j] = ps[j], ps[i]
 }
 
-func (hs *hashSorter) Less(i, j int) bool {
-    ps := hs.peers
-    iHash := new(big.Int).SetBytes(ps[i].Hash())
-    jHash := new(big.Int).SetBytes(ps[j].Hash())
-    return iHash.Cmp(jHash) < 0
+func (sorter *peerSorter) Less(i, j int) bool {
+    return sorter.less(&sorter.peers[i], &sorter.peers[j])
 }
