@@ -110,12 +110,12 @@ func main() {
 
         fmt.Printf("Your peers in group %s:\n", *node.Group)
 
-        peers := make(cluster.Peers, 0, len(node.Peers))
+        peers := make([]cluster.Peer, 0, len(node.Peers))
         for _, p := range node.Peers {
             peers = append(peers, p)
         }
 
-        sort.Sort(sort.Reverse(peers))
+        sort.Sort(sort.Reverse(cluster.PeersByHash(peers)))
 
         for _, p := range peers {
             peerHash := p.Hash()

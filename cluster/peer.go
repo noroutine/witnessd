@@ -18,8 +18,6 @@ type Peer struct {
     entry *bonjour.ServiceEntry
 }
 
-type Peers []Peer
-
 func (p *Peer) GetAddrIPv4() net.IP {
     return p.entry.AddrIPv4
 }
@@ -32,15 +30,27 @@ func (p *Peer) Hash() []byte {
     return mmh3.Sum128([]byte(*p.Name))
 }
 
-func (ps Peers) Len() int {
-    return len(ps)
+type hashSorter struct {
+    peers []Peer
 }
 
-func (ps Peers) Swap(i, j int) {
+func PeersByHash(ps []Peer) *hashSorter {
+    return &hashSorter{
+        peers: ps,
+    }
+}
+
+func (hs *hashSorter) Len() int {
+    return len(hs.peers)
+}
+
+func (hs *hashSorter) Swap(i, j int) {
+    ps := hs.peers
     ps[i], ps[j] = ps[j], ps[i]
 }
 
-func (ps Peers) Less(i, j int) bool {
+func (hs *hashSorter) Less(i, j int) bool {
+    ps := hs.peers
     iHash := new(big.Int).SetBytes(ps[i].Hash())
     jHash := new(big.Int).SetBytes(ps[j].Hash())
     return iHash.Cmp(jHash) < 0
