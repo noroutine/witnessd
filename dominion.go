@@ -157,11 +157,13 @@ func main() {
             fmt.Println("Usage: get <key>")
         }
 
-        p := cl.PrimaryNode(cluster.StringObject{
+        obj := cluster.StringObject{
             Data: &args[0],
-        })
+        }
 
-        fmt.Printf("Key %s stored by peer %s\n", args[0], *p.Name)
+        primary, secondary := cl.HashNodes(obj.Hash())
+
+        fmt.Printf("Key %s stored by peers:\n  primary  : %s\n  secondary: %s\n", args[0], *primary.Name, *secondary.Name)
     })
 
     repl.Register("help", func(args []string) {

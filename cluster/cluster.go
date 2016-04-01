@@ -48,13 +48,13 @@ func (c *Cluster) Disconnect() {
     }
 }
 
-func (c *Cluster) PrimaryNode(o Object) *Peer {
+// Returns one primary node and one replication node for the object
+func (c *Cluster) HashNodes(objectHash []byte) (*Peer, *Peer){
     peers := PeerSorter(c.Peers()).ByHash().Sort()
-    objectHash := o.Hash()
 
     l, r := 0, len(peers) - 1
     if Clockwise(peers[r].Hash(), objectHash, peers[l].Hash()) {
-        return peers[r]
+        return peers[l], peers[r]
     }
 
     var m int
@@ -68,7 +68,7 @@ func (c *Cluster) PrimaryNode(o Object) *Peer {
         }
     }
 
-    return peers[l]
+    return peers[l], peers[(l - 1 + len(peers)) % len(peers)]
 }
 
 // TODO: put the object into cluster DHT
