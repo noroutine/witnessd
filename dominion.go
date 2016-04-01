@@ -69,8 +69,8 @@ func main() {
     node.Port = opts.port
     node.Group = &opts.join
 
-    node.StartDiscovery()
     node.AnnouncePresence()
+    node.StartDiscovery()
 
     cl, err := cluster.NewVia(node)
     if err != nil {
