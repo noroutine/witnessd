@@ -173,9 +173,9 @@ func main() {
         cl.Disconnect()
     })
 
-    repl.Register("get", func(args []string) {
+    repl.Register("find", func(args []string) {
         if len(args) < 1 {
-            fmt.Println("Usage: get <key>")
+            fmt.Println("Usage: find <key>")
         }
 
         obj := cluster.StringObject{
@@ -187,12 +187,29 @@ func main() {
         fmt.Printf("Key %s stored by peers:\n  primary  : %s\n  secondary: %s\n", args[0], *primary.Name, *secondary.Name)
     })
 
-    repl.Register("help", func(args []string) {
+    repl.Register("store", func(args []string) {
+        if len(args) < 1 {
+            fmt.Println("Usage: store <key>")
+        }
+
+        switch cl.Store() {
+        case cluster.STORE_SUCCESS: fmt.Println("Success")
+        case cluster.STORE_PARTIAL_SUCCESS: fmt.Println("Partial success")
+        case cluster.STORE_ERROR: fmt.Println("Error")
+        case cluster.STORE_FAILURE: fmt.Println("Failure")
+        }
+    })
+
+    repl.Register("ping", func(args []string) {
         if len(args) < 1 {
             fmt.Println("Usage: ping <peer>")
         }
 
-        fmt.Printf("Commands: %s\n", strings.Join(repl.GetKnownCommands(), ", "))
+        switch cl.Ping(args[0]) {
+        case cluster.PING_SUCCESS: fmt.Println("Success")
+        case cluster.PING_ERROR: fmt.Println("Error")
+        case cluster.PING_TIMEOUT: fmt.Println("Timeout")
+        }
     })
 
 

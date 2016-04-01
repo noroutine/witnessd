@@ -11,6 +11,7 @@ const (
     NOOP  OperationType = iota
     PING                          // ping operations
     JOIN                          // join operations
+    STORE                         // store operations
 )
 
 type Message struct {

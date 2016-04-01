@@ -28,6 +28,7 @@ func NewVia(node *Node) (c *Cluster, err error) {
         handlers: list.New(),
     }
     c.handlers.PushBack(NewPongActivity(c))
+    c.handlers.PushBack(NewBucketActivity(c))
     return c, nil
 }
 
@@ -108,6 +109,16 @@ func (c *Cluster) Ping(peer string) int {
     defer c.handlers.Remove(e)
 
     activity.Run(peer)
+    return <- activity.Result
+}
+
+func (c *Cluster) Store() int {
+    activity := NewStoreActivity(c)
+
+    e := c.handlers.PushBack(activity)
+    defer c.handlers.Remove(e)
+
+    activity.Run()
     return <- activity.Result
 }
 
