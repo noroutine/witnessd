@@ -152,21 +152,26 @@ func main() {
         cl.Disconnect()
     })
 
-    repl.Register("ping", func(args []string) {
+    repl.Register("get", func(args []string) {
+        if len(args) < 1 {
+            fmt.Println("Usage: get <key>")
+        }
+
+        p := cl.PrimaryNode(cluster.StringObject{
+            Data: &args[0],
+        })
+
+        fmt.Printf("Key %s stored by peer %s\n", args[0], *p.Name)
+    })
+
+    repl.Register("help", func(args []string) {
         if len(args) < 1 {
             fmt.Println("Usage: ping <peer>")
         }
 
-        result := cl.Ping(args[0])
-
-        switch result {
-            case cluster.TIMEOUT: fmt.Println("Timeout")
-            case cluster.ERROR: fmt.Println("Error")
-            case cluster.SUCCESS: fmt.Println("Success")
-            default:
-                log.Println("Unknown result", result)
-        }
+        fmt.Printf("Commands: %s\n", strings.Join(repl.GetKnownCommands(), ", "))
     })
+
 
     repl.Register("help", func(args []string) {
         fmt.Printf("Commands: %s\n", strings.Join(repl.GetKnownCommands(), ", "))

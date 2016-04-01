@@ -52,7 +52,7 @@ func (c *Cluster) PrimaryNode(o Object) *Peer {
     peers := PeerSorter(c.Peers()).ByHash().Sort()
     objectHash := o.Hash()
 
-    l, r := 0, len(peers)
+    l, r := 0, len(peers) - 1
     if Clockwise(peers[r].Hash(), objectHash, peers[l].Hash()) {
         return peers[r]
     }
@@ -128,7 +128,8 @@ func (c *Cluster) Peers() []*Peer {
     peersMap := c.proxy.Peers
     peers := make([]*Peer, 0, len(peersMap))
     for _, p := range peersMap {
-        peers = append(peers, &p)
+        pp := p
+        peers = append(peers, &pp)
     }
 
     return PeerSorter(peers).ByHash().Sort()
