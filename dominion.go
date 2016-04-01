@@ -107,12 +107,33 @@ func main() {
             node.DiscoverPeers()
         }
 
-        fmt.Printf("Your peers in group %s:\n", *node.Group)
+        keyspace :=  new(big.Int).SetBytes([]byte {
+            0xFF, 0xFF,
+            0xFF, 0xFF,
+            0xFF, 0xFF,
+            0xFF, 0xFF,
+            0xFF, 0xFF,
+            0xFF, 0xFF,
+            0xFF, 0xFF,
+            0xFF, 0xFF,
+        })
 
-        for _, p := range cl.Peers() {
-            peerHash := p.Hash()
-            peerHashInt := new(big.Int).SetBytes(peerHash)
-            fmt.Printf("%s (%s:%d) %x (%v)\n", *p.Name, p.GetAddrIPv4(), p.Port, peerHash, peerHashInt)
+        fmt.Printf("Your peers in group %s:\n", *node.Group)
+        peers := cl.Peers()
+        prev := peers[len(peers) - 1]
+
+        for i, p := range cl.Peers() {
+            prevHash, peerHash := prev.Hash(), p.Hash()
+            diff := new(big.Int).Sub(new(big.Int).SetBytes(peerHash), new(big.Int).SetBytes(prevHash))
+            if i == 0 {
+                diff = diff.Add(diff, keyspace)
+            }
+
+            percent, _ := new(big.Float).Mul(new(big.Float).Quo(new(big.Float).SetInt(diff), new(big.Float).SetInt(keyspace)), big.NewFloat(100)).Float64()
+
+            fmt.Printf("%s (%s:%d) %x (%.2f%% of keys)\n", *p.Name, p.GetAddrIPv4(), p.Port, peerHash, percent)
+
+            prev = p
         }
     })
 
