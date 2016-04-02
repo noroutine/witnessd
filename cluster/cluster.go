@@ -10,6 +10,7 @@ import (
 
 type Cluster struct {
     proxy *Node
+    storage Storage
     Server *Server
     Name string
     OrderId uint64
@@ -24,9 +25,11 @@ func NewVia(node *Node) (c *Cluster, err error) {
 
     c = &Cluster{
         proxy: node,
+        storage: NewInMemoryStorage(),
         Name: *node.Group,
         handlers: list.New(),
     }
+
     c.handlers.PushBack(NewPongActivity(c))
     c.handlers.PushBack(NewBucketActivity(c))
     return c, nil

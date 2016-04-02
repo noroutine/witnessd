@@ -49,6 +49,8 @@ func (a *BucketActivity) Handle(r *Request) error {
         return errors.New(fmt.Sprintf("Cannot ack request from %s", peer))
     }
 
+    // a.c.storage.Put()
+
     log.Printf("Got %d bytes of data to store, sending ack to %s", r.Message.Length, peer)
 
     // send pong back
