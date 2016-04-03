@@ -192,7 +192,7 @@ func main() {
             fmt.Println("Usage: store <key>")
         }
 
-        switch cl.Store([]byte(args[0])) {
+        switch cl.Store([]byte(args[0]), []byte(*node.Name)) {
         case cluster.STORE_SUCCESS: fmt.Println("Success")
         case cluster.STORE_PARTIAL_SUCCESS: fmt.Println("Partial success")
         case cluster.STORE_ERROR: fmt.Println("Error")

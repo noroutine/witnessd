@@ -1,11 +1,13 @@
 package cluster
 
 import (
-    "github.com/noroutine/dominion/fsa"
     "errors"
     "log"
     "fmt"
+    "encoding/gob"
+    "github.com/noroutine/dominion/fsa"
     "github.com/reusee/mmh3"
+    "bytes"
 )
 
 const (
@@ -21,6 +23,11 @@ const (
     STORE_FAILURE
     STORE_ERROR
 )
+
+type DataTransferObject struct {
+    Key []byte
+    Value []byte
+}
 
 type BucketActivity struct {
     c *Cluster
@@ -43,13 +50,21 @@ func (a *BucketActivity) Route(r *Request) (h Handler, err error) {
 
 func (a *BucketActivity) Handle(r *Request) error {
 
-    peer := string(r.Message.Load)
+    peer := string(r.Message.ReplyTo)
     ackAddr, err := a.c.GetPeerAddr(peer)
     if err != nil {
         return errors.New(fmt.Sprintf("Cannot ack request from %s", peer))
     }
 
-    // a.c.storage.Put()
+    raw := bytes.NewBuffer(r.Message.Load)
+    dec := gob.NewDecoder(raw)
+    var dto DataTransferObject
+    err = dec.Decode(&dto)
+    if err != nil {
+        log.Fatal("Decode error: ", err)
+    }
+
+    a.c.storage.Put(dto.Key, dto.Value)
 
     log.Printf("Got %d bytes of data to store, sending ack to %s", r.Message.Length, peer)
 
@@ -95,13 +110,29 @@ func (a *StoreActivity) Handle(r *Request) error {
     return nil
 }
 
-func (a *StoreActivity) Run(key []byte, data []byte) {
+func (a *StoreActivity) Run(key, data []byte) {
     a.fsa = fsa.New(func(state, input int) int {
         switch{
         case state == STORE_START && input == STORE_START:
             go a.fsa.Send(STORE_SEND)
             return STORE_SEND
         case state == STORE_SEND && input == STORE_SEND:
+
+            raw := new(bytes.Buffer)
+            enc := gob.NewEncoder(raw)
+            err := enc.Encode(DataTransferObject {
+                Key: key,
+                Value: data,
+            })
+
+            if err != nil {
+                panic(fmt.Sprintf("Can't encode data for transfer: %v", err))
+            }
+
+            if raw.Len() > MaxLoadLength {
+                panic("Load is too big")
+            }
+
             primary, secondary := a.c.HashNodes(mmh3.Sum128(key))
             primaryAddr, err := a.c.GetPeerAddr(*primary.Name)
             if err != nil {
@@ -122,8 +153,9 @@ func (a *StoreActivity) Run(key []byte, data []byte) {
                 Version: 1,
                 Type: STORE,
                 Operation: 0,   // store
-                Length: uint16(len(data)),
-                Load: data,
+                ReplyTo: *a.c.proxy.Name,
+                Length: uint16(raw.Len()),
+                Load: raw.Bytes(),
             }
 
             go a.c.Send(primaryAddr, m)

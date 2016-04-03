@@ -115,13 +115,13 @@ func (c *Cluster) Ping(peer string) int {
     return <- activity.Result
 }
 
-func (c *Cluster) Store(key []byte, ) int {
+func (c *Cluster) Store(key, data []byte) int {
     activity := NewStoreActivity(c)
 
     e := c.handlers.PushBack(activity)
     defer c.handlers.Remove(e)
 
-    activity.Run(key, []byte(*c.proxy.Name))
+    activity.Run(key, data)
     return <- activity.Result
 }
 
