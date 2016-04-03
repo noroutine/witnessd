@@ -35,12 +35,22 @@ func Unmarshall(packet []byte) (m *Message, err error) {
         return
     }
 
+    replyTo := make([]byte, 0, 255)
+    // last byte shall be only \0 always, so we ignore it
+    for _, b := range packet[36:291] {
+        if b == 0 {
+            break
+        }
+
+        replyTo = append(replyTo, b)
+    }
+
     return &Message{
         Version:    packet[0],
         Type:       OperationType(packet[1]),
         Operation:  packet[2],
         Args:       packet[4:20],
-        ReplyTo:    string(packet[36:291]),
+        ReplyTo:    string(replyTo),
         Length:     uint16(packet[292]) << 8 | uint16(packet[293]),
         Load:       packet[294:],
     }, nil
@@ -56,15 +66,28 @@ func Marshall(m *Message) []byte {
     // byte 3 is reserved
 
     if len(m.Args) > 16 {
-        panic("Too many message arguments, max 8 allowed")
+        panic("Too many message arguments, max 16 allowed")
     }
     for i := range(m.Args) {
         buf[4 + i] = m.Args[i]
     }
+    // the rest is filled with zeroes
+    for i := len(m.Args); i < 16; i++ {
+        buf[4 + i] = 0
+    }
+
     // bytes 20 to 35 are reserved
+
+    if len(m.ReplyTo) > 255 {
+        panic("ReplyTo shall be max 255 bytes")
+    }
 
     for i, b := range []byte(m.ReplyTo) {
         buf[36 + i] = b
+    }
+    // the rest is filled with zeroes
+    for i := len(m.ReplyTo); i < 255; i++ {
+        buf[36 + i] = 0
     }
 
     buf[292] = byte(m.Length >> 8)
