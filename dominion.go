@@ -176,6 +176,7 @@ func main() {
     repl.Register("find", func(args []string) {
         if len(args) < 1 {
             fmt.Println("Usage: find <key>")
+            return
         }
 
         obj := cluster.StringObject{
@@ -190,6 +191,7 @@ func main() {
     repl.Register("store", func(args []string) {
         if len(args) < 2 {
             fmt.Println("Usage: store <key> <value>")
+            return
         }
 
         switch cl.Store([]byte(args[0]), []byte(args[1])) {
@@ -203,6 +205,7 @@ func main() {
     repl.Register("load", func(args []string) {
         if len(args) < 1 {
             fmt.Println("Usage: load <key>")
+            return
         }
 
         data, result := cl.Load([]byte(args[0]))
@@ -218,6 +221,7 @@ func main() {
     repl.Register("ping", func(args []string) {
         if len(args) < 1 {
             fmt.Println("Usage: ping <peer>")
+            return
         }
 
         switch cl.Ping(args[0]) {
