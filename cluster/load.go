@@ -8,6 +8,7 @@ import (
     "github.com/reusee/mmh3"
     "bytes"
     "encoding/gob"
+    "time"
 )
 
 const (
@@ -159,6 +160,17 @@ func (a *LoadActivity) Handle(r *Request) error {
 }
 
 func (a *LoadActivity) Run(key []byte) {
+    timeoutFunc := func(state int) (<-chan time.Time, func(int) int) {
+        if state == LOAD_WAIT_ACK {
+            return time.After(100*time.Millisecond), func(s int) int {
+                go a.fsa.Send(LOAD_RCVD_NACK)
+                return LOAD_WAIT_ACK
+            }
+        }
+
+        return fsa.NeverTimesOut()(state)
+    }
+
     a.fsa = fsa.New(func(state, input int) int {
         switch{
         case state == LOAD_START && input == LOAD_START:
@@ -217,7 +229,7 @@ func (a *LoadActivity) Run(key []byte) {
             case a.acks == 1 && a.nacks == 1:
                 go a.fsa.Send(LOAD_PARTIAL_ACK)
                 return LOAD_PARTIAL_ACK
-            case a.acks == 0 && a.nacks == 2:
+            case a.nacks == 0:
                 go a.fsa.Send(LOAD_NO_ACK)
                 return LOAD_NO_ACK
             default:
@@ -232,7 +244,7 @@ func (a *LoadActivity) Run(key []byte) {
             case a.acks == 1 && a.nacks == 1:
                 go a.fsa.Send(LOAD_PARTIAL_ACK)
                 return LOAD_PARTIAL_ACK
-            case a.acks == 0 && a.nacks == 2:
+            case a.nacks == 0:
                 go a.fsa.Send(LOAD_NO_ACK)
                 return LOAD_NO_ACK
             default:
@@ -251,7 +263,7 @@ func (a *LoadActivity) Run(key []byte) {
         log.Println("Invalid automat")
         a.Result <- LOAD_ERROR
         return LOAD_ERROR
-    }, fsa.TerminatesOn(LOAD_SUCCESS, LOAD_PARTIAL_SUCCESS, LOAD_FAILURE), fsa.NeverTimesOut())
+    }, fsa.TerminatesOn(LOAD_SUCCESS, LOAD_PARTIAL_SUCCESS, LOAD_FAILURE), timeoutFunc)
 
     go a.fsa.Send(LOAD_START)
 }
