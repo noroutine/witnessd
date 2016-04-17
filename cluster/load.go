@@ -114,6 +114,7 @@ type LoadActivity struct {
     fsa *fsa.FSA
     acks int
     nacks int
+    copies int
     Result chan int
     Data []byte
 }
@@ -123,8 +124,9 @@ func NewLoadActivity(c *Cluster, level ConsistencyLevel) *LoadActivity {
         Result: make(chan int, 1),
         Data: []byte {},
         level: level,
-        acks: 2,
-        nacks: 2,
+        acks: 0,
+        nacks: 0,
+        copies: 0,
         c: c,
         fsa: nil,
     }
@@ -194,7 +196,7 @@ func (a *LoadActivity) Run(key []byte) {
             }
 
             nodes := a.c.HashNodes(mmh3.Sum128(key), a.level)
-            a.acks = len(nodes)
+            a.copies = len(nodes)
 
             // send load command to all peers that should have a copy
             m := &Message{
@@ -219,30 +221,40 @@ func (a *LoadActivity) Run(key []byte) {
 
             return LOAD_WAIT_ACK
         case state == LOAD_WAIT_ACK && input == LOAD_RCVD_ACK:
-            a.acks--
+            a.acks++
+
+            if a.acks + a.nacks < a.copies {
+                return LOAD_WAIT_ACK
+            }
+
             switch {
-            case a.acks == 0:
+            case a.acks == a.copies:
                 go a.fsa.Send(LOAD_FULL_ACK)
                 return LOAD_FULL_ACK
-            case a.acks == 1 && a.nacks == 1:
+            case a.acks + a.nacks == a.copies:
                 go a.fsa.Send(LOAD_PARTIAL_ACK)
                 return LOAD_PARTIAL_ACK
-            case a.nacks == 0:
+            case a.nacks == a.copies:
                 go a.fsa.Send(LOAD_NO_ACK)
                 return LOAD_NO_ACK
             default:
                 return LOAD_WAIT_ACK
             }
         case state == LOAD_WAIT_ACK && input == LOAD_RCVD_NACK:
-            a.nacks--
+            a.nacks++
+
+            if a.acks + a.nacks < a.copies {
+                return LOAD_WAIT_ACK
+            }
+
             switch {
-            case a.acks == 0:
+            case a.acks == a.copies:
                 go a.fsa.Send(LOAD_FULL_ACK)
                 return LOAD_FULL_ACK
-            case a.acks == 1 && a.nacks == 1:
+            case a.acks + a.nacks == a.copies:
                 go a.fsa.Send(LOAD_PARTIAL_ACK)
                 return LOAD_PARTIAL_ACK
-            case a.nacks == 0:
+            case a.nacks == a.copies:
                 go a.fsa.Send(LOAD_NO_ACK)
                 return LOAD_NO_ACK
             default:

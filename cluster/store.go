@@ -109,7 +109,7 @@ func (a *StoreActivity) Route(r *Request) (h Handler, err error)  {
 }
 
 func (a *StoreActivity) Handle(r *Request) error {
-    log.Println("Received ack from ", r.Message.ReplyTo)
+    log.Println("Received ACK from ", r.Message.ReplyTo)
     go a.fsa.Send(STORE_RCVD_ACK)
     return nil
 }

@@ -18,7 +18,7 @@ type Cluster struct {
     handlers *list.List
 }
 
-const DefaultPartitions = 4096
+const DefaultPartitions = 127
 const partitionsKey string = "partitions"
 
 // Create a cluster instance with node as a communication proxy
