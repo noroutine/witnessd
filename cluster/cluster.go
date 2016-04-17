@@ -53,27 +53,37 @@ func (c *Cluster) Disconnect() {
     }
 }
 
-// Returns one primary node and one replication node for the object
-func (c *Cluster) HashNodes(objectHash []byte) (*Peer, *Peer){
+// Returns one primary node and as much consistently determined replication nodes as needed for meeting consistency level
+func (c *Cluster) HashNodes(objectHash []byte, level ConsistencyLevel) []*Peer {
+    copies := c.Copies(level)
+    nodes := make([]*Peer, copies, copies)
     peers := PeerSorter(c.Peers()).ByHash().Sort()
 
-    l, r := 0, len(peers) - 1
+    // first of all determine the primary node
+    h, l, r, lenPeers := 0, 0, len(peers) - 1, len(peers)
     if Clockwise(peers[r].Hash(), objectHash, peers[l].Hash()) {
-        return peers[l], peers[r]
-    }
+        h = r
+    } else {
+        var m int
+        for r - l > 1 {
+            m = l + (r - l) >> 1
 
-    var m int
-    for r - l > 1 {
-        m = l + (r - l) >> 1
-
-        if Clockwise(peers[m].Hash(), objectHash, peers[r].Hash()) {
-            l = m
-        } else {
-            r = m
+            if Clockwise(peers[m].Hash(), objectHash, peers[r].Hash()) {
+                l = m
+            } else {
+                r = m
+            }
         }
+
+        h = l
     }
 
-    return peers[l], peers[(l - 1 + len(peers)) % len(peers)]
+    // build up the array
+    for i := 0; i < copies; i++ {
+        nodes[i] = peers[(h - i + lenPeers) % lenPeers]
+    }
+
+    return nodes
 }
 
 // TODO: put the object into cluster DHT
@@ -116,8 +126,8 @@ func (c *Cluster) Ping(peer string) int {
     return <- activity.Result
 }
 
-func (c *Cluster) Store(key, data []byte) int {
-    activity := NewStoreActivity(c)
+func (c *Cluster) Store(key, data []byte, level ConsistencyLevel) int {
+    activity := NewStoreActivity(c, c.AdjustedConsistencyLevel(level))
 
     e := c.handlers.PushBack(activity)
     defer c.handlers.Remove(e)
@@ -126,14 +136,22 @@ func (c *Cluster) Store(key, data []byte) int {
     return <- activity.Result
 }
 
-func (c *Cluster) Load(key []byte) ([]byte, int) {
-    activity := NewLoadActivity(c)
+func (c *Cluster) Load(key []byte, level ConsistencyLevel) ([]byte, int) {
+    adjustedLevel := c.AdjustedConsistencyLevel(level)
+    activity := NewLoadActivity(c, adjustedLevel)
 
     e := c.handlers.PushBack(activity)
     defer c.handlers.Remove(e)
 
     activity.Run(key)
-    return activity.Data, <- activity.Result
+
+    data, result := activity.Data, <- activity.Result
+
+    if result == LOAD_PARTIAL_SUCCESS {
+        c.Store(key, data, adjustedLevel)
+    }
+
+    return data, result
 }
 
 // Send cluster message as UDP packet
@@ -158,6 +176,14 @@ func (c *Cluster) Peers() []*Peer {
     }
 
     return PeerSorter(peers).ByHash().Sort()
+}
+
+func (c *Cluster) Quorum() int {
+    return len(c.proxy.Peers) + 1
+}
+
+func (c *Cluster) Size() int {
+    return len(c.proxy.Peers)
 }
 
 // Resolve cluster peer IP address by peer name

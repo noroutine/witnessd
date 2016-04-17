@@ -110,6 +110,7 @@ func (a *BucketLoadActivity) Handle(r *Request) error {
 
 type LoadActivity struct {
     c *Cluster
+    level ConsistencyLevel
     fsa *fsa.FSA
     acks int
     nacks int
@@ -117,10 +118,11 @@ type LoadActivity struct {
     Data []byte
 }
 
-func NewLoadActivity(c *Cluster) *LoadActivity {
+func NewLoadActivity(c *Cluster, level ConsistencyLevel) *LoadActivity {
     return &LoadActivity{
         Result: make(chan int, 1),
         Data: []byte {},
+        level: level,
         acks: 2,
         nacks: 2,
         c: c,
@@ -191,22 +193,10 @@ func (a *LoadActivity) Run(key []byte) {
                 panic("Load is too big")
             }
 
-            primary, secondary := a.c.HashNodes(mmh3.Sum128(key))
-            primaryAddr, err := a.c.GetPeerAddr(*primary.Name)
-            if err != nil {
-                log.Println("Cannot contact peer", *primary.Name)
-                a.Result <- LOAD_ERROR
-                return LOAD_ERROR
-            }
+            nodes := a.c.HashNodes(mmh3.Sum128(key), a.level)
+            a.acks = len(nodes)
 
-            secondaryAddr, err := a.c.GetPeerAddr(*secondary.Name)
-            if err != nil {
-                log.Println("Cannot contact peer", *secondary.Name)
-                a.Result <- LOAD_ERROR
-                return LOAD_ERROR
-            }
-
-            // send load command to primary and secondary nodes
+            // send load command to all peers that should have a copy
             m := &Message{
                 Version: 1,
                 Type: LOAD,
@@ -216,8 +206,16 @@ func (a *LoadActivity) Run(key []byte) {
                 Load: raw.Bytes(),
             }
 
-            go a.c.Send(primaryAddr, m)
-            go a.c.Send(secondaryAddr, m)
+            for _, node := range nodes {
+                addr, err := a.c.GetPeerAddr(*node.Name)
+                if err != nil {
+                    log.Println("Cannot contact peer", *node.Name)
+                    a.Result <- LOAD_ERROR
+                    return LOAD_ERROR
+                }
+
+                go a.c.Send(addr, m)
+            }
 
             return LOAD_WAIT_ACK
         case state == LOAD_WAIT_ACK && input == LOAD_RCVD_ACK:
