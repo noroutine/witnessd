@@ -18,7 +18,7 @@ type Cluster struct {
     handlers *list.List
 }
 
-const DefaultPartitions = 5
+const DefaultPartitions = 4096
 const partitionsKey string = "partitions"
 
 // Create a cluster instance with node as a communication proxy
@@ -85,19 +85,19 @@ func (c *Cluster) Disconnect() {
 // Returns one primary node and as much consistently determined replication nodes as needed for meeting consistency level
 func (c *Cluster) HashNodes(objectHash []byte, level ConsistencyLevel) []*Peer {
     copies := c.Copies(level)
-    nodes := make([]*Peer, copies, copies)
-    peers := c.Peers()
+    nodes := make([]*Peer, 0, copies)
+    partitions := c.Partitions()
 
     // first of all determine the primary node
-    h, l, r, lenPeers := 0, 0, len(peers) - 1, len(peers)
-    if Clockwise(peers[r].Hash(), objectHash, peers[l].Hash()) {
+    h, l, r, lenPeers := 0, 0, len(partitions) - 1, len(partitions)
+    if Clockwise(partitions[r].Hash(), objectHash, partitions[l].Hash()) {
         h = r
     } else {
         var m int
         for r - l > 1 {
             m = l + (r - l) >> 1
 
-            if Clockwise(peers[m].Hash(), objectHash, peers[r].Hash()) {
+            if Clockwise(partitions[m].Hash(), objectHash, partitions[r].Hash()) {
                 l = m
             } else {
                 r = m
@@ -107,9 +107,23 @@ func (c *Cluster) HashNodes(objectHash []byte, level ConsistencyLevel) []*Peer {
         h = l
     }
 
-    // build up the array
-    for i := 0; i < copies; i++ {
-        nodes[i] = peers[(h - i + lenPeers) % lenPeers]
+    // build up the array - we take the pivot partition and find as many *other* peers as we need
+
+    for j := 0; len(nodes) < copies; j++ {
+        partition := partitions[(h - j + lenPeers) % lenPeers]
+        // if partition peer is not in nodes yet - we can add this partition
+        peerPresent := false
+        for k := 0; k < len(nodes); k++ {
+            if partition.Peer == nodes[k] {
+                // partition is from already added peer
+                peerPresent = true
+                break
+            }
+        }
+
+        if ! peerPresent {
+            nodes = append(nodes, partition.Peer)
+        }
     }
 
     return nodes
@@ -178,22 +192,33 @@ func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {
     return udpCl.Send(m)
 }
 
+func (c *Cluster) Partitions() []*PeerPartition {
+    peersMap := c.proxy.Peers
+    partitions := make([]*PeerPartition, 0, DefaultPartitions*len(peersMap))
+
+    for _, p := range peersMap {
+        pp := p.Clone()
+        for i := uint32(0); i < p.Partitions; i++ {
+            partitions = append(partitions, &PeerPartition{
+                Peer: pp,
+                Partition: i,
+            })
+        }
+    }
+
+    return PeerPartitionSorterSorter(partitions).ByHash().Sort()
+}
+
 func (c *Cluster) Peers() []*Peer {
     // TODO: potential shared memory access
     peersMap := c.proxy.Peers
-    peers := make([]*Peer, 0, 3*len(peersMap))
+    peers := make([]*Peer, 0, len(peersMap))
+
     for _, p := range peersMap {
-        //partitions := p.GetPartitions()
-        //for i := 0; i < partitions; i++ {
-        //    pp := p.Clone()
-        //    ppName := fmt.Sprintf("%s.%d", *p.Name, i)
-        //    pp.Name = &ppName
-        //    peers = append(peers, pp)
-        //}
         peers = append(peers, p.Clone())
     }
 
-    return PeerSorter(peers).ByHash().Sort()
+    return peers
 }
 
 func (c *Cluster) Quorum() int {

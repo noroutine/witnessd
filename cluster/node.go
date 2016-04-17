@@ -7,6 +7,7 @@ import (
     "strings"
     "github.com/noroutine/bonjour"
     "github.com/reusee/mmh3"
+    "strconv"
 )
 
 type Node struct {
@@ -89,6 +90,7 @@ L:
                         Name:         &e.Instance,
                         Group:        g,
                         HostName:     &e.HostName,
+                        Partitions:   getPeerPartitions(e),
                         Port:         e.Port,
                         AddrIPv4:     e.AddrIPv4,
                         AddrIPv6:     e.AddrIPv6,
@@ -222,6 +224,27 @@ func getPeerGroup(e *bonjour.ServiceEntry) *string {
     }
 
     return nil
+}
+
+func getPeerPartitions(e *bonjour.ServiceEntry) uint32 {
+    var partitionsValue *string
+    for _, s := range e.Text {
+        if strings.HasPrefix(s, partitionsKey + "=") {
+            partitionTextValue := strings.TrimPrefix(s, partitionsKey + "=")
+            partitionsValue = &partitionTextValue
+        }
+    }
+
+    if partitionsValue == nil {
+        return 1
+    } else {
+        partitions, err := strconv.ParseUint(*partitionsValue, 10, 32)
+        if err != nil {
+            return uint32(1)
+        } else {
+            return uint32(partitions)
+        }
+    }
 }
 
 func (node *Node) getNodeText() []string {

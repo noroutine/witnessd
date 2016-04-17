@@ -15,7 +15,7 @@ const (
 )
 
 func (c *Cluster) Copies(level ConsistencyLevel) int {
-    switch level {
+    switch c.AdjustedConsistencyLevel(level) {
     case LEVEL_ZERO:
         return 1
     case LEVEL_ONE:

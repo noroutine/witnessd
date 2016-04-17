@@ -92,7 +92,7 @@ func main() {
                     // stupid but anyways: once I notice I joined, I connect to cluster :D
                     cl.Connect()
                 }
-                log.Printf("%s joined with %d partitions", *peer.Name, peer.GetPartitions())
+                log.Printf("%s joined with %d partitions", *peer.Name, peer.Partitions)
             case peer := <- node.Left:
                 log.Println(*peer.Name, "left")
             }
@@ -103,8 +103,23 @@ func main() {
         fmt.Println("Feeling lost? Try 'help'")
         repl.EmptyHandler = nil
     }
-    
+
     repl.Register("peers", func(args []string) {
+        if node.Group == nil {
+            fmt.Println("You are not a member of any group, use 'join'")
+            return
+        }
+
+        if (! node.IsDiscoveryActive()) {
+            node.DiscoverPeers()
+        }
+
+        for _, p := range cl.Peers() {
+            fmt.Printf("%-20s (%s:%d)\n", *p.Name, p.AddrIPv4, p.Port)
+        }
+    })
+
+    repl.Register("partitions", func(args []string) {
         if node.Group == nil {
             fmt.Println("You are not a member of any group, use 'join'")
             return
@@ -126,21 +141,28 @@ func main() {
         })
 
         fmt.Printf("Your peers in group %s:\n", *node.Group)
-        peers := cl.Peers()
-        prev := peers[len(peers) - 1]
+        partitions := cl.Partitions()
+        prev := partitions[len(partitions) - 1]
 
-        for i, p := range cl.Peers() {
-            prevHash, peerHash := prev.Hash(), p.Hash()
-            diff := new(big.Int).Sub(new(big.Int).SetBytes(peerHash), new(big.Int).SetBytes(prevHash))
+        byPeer := make(map[string]float64)
+        for i, p := range partitions {
+            prevHash, partitionHash := prev.Hash(), p.Hash()
+            diff := new(big.Int).Sub(new(big.Int).SetBytes(partitionHash), new(big.Int).SetBytes(prevHash))
             if i == 0 {
                 diff = diff.Add(diff, keyspace)
             }
 
             percent, _ := new(big.Float).Mul(new(big.Float).Quo(new(big.Float).SetInt(diff), new(big.Float).SetInt(keyspace)), big.NewFloat(100)).Float64()
 
-            fmt.Printf("%-20s (%s:%d)\t%x\t(%.2f%% of keys)\n", *p.Name, p.AddrIPv4, p.Port, peerHash, percent)
+            // fmt.Printf("%-20s %x\t(%.2f%% of keys)\n", fmt.Sprintf("%s.%d", *p.Peer.Name, p.Partition), partitionHash, percent)
+
+            byPeer[*p.Peer.Name] = byPeer[*p.Peer.Name] + percent
 
             prev = p
+        }
+
+        for _, peer := range cl.Peers() {
+            fmt.Printf("%-20s %d\t(%.2f%% of keys)\n", *peer.Name, peer.Partitions, byPeer[*peer.Name])
         }
     })
 
