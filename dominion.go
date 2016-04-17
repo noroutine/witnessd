@@ -18,6 +18,7 @@ const description = "Dominion " + version
 
 type Options struct {
     port int
+    partitions int
     name string
     join string
     announce bool
@@ -28,12 +29,18 @@ func main() {
     opts := Options{}
 
     flag.IntVar(&opts.port, "port", cluster.DefaultPort, "client API port")
+    flag.IntVar(&opts.partitions, "partitions", cluster.DefaultPartitions, "amount of storage partitions")
     flag.StringVar(&opts.name, "name", "", "name of the player")
     flag.StringVar(&opts.join, "join", "", "name of the group of the node")
     flag.Parse()
 
     if opts.port <= 0 || opts.port > 65535 {
         fmt.Printf("Invalid port: %v\n", opts.port)
+        os.Exit(42)
+    }
+
+    if opts.partitions < 1 {
+        fmt.Printf("number of partitions must be at least 1, requested %d\n", opts.partitions)
         os.Exit(42)
     }
 
@@ -72,7 +79,7 @@ func main() {
     node.AnnouncePresence()
     node.StartDiscovery()
 
-    cl, err := cluster.NewVia(node)
+    cl, err := cluster.NewVia(node, opts.partitions)
     if err != nil {
         log.Fatal(fmt.Sprintln("Cannot start cluster", err))
     }
@@ -85,7 +92,7 @@ func main() {
                     // stupid but anyways: once I notice I joined, I connect to cluster :D
                     cl.Connect()
                 }
-                log.Println(*peer.Name, "joined")
+                log.Printf("%s joined with %d partitions", *peer.Name, peer.GetPartitions())
             case peer := <- node.Left:
                 log.Println(*peer.Name, "left")
             }
@@ -131,7 +138,7 @@ func main() {
 
             percent, _ := new(big.Float).Mul(new(big.Float).Quo(new(big.Float).SetInt(diff), new(big.Float).SetInt(keyspace)), big.NewFloat(100)).Float64()
 
-            fmt.Printf("%s (%s:%d) %x (%.2f%% of keys)\n", *p.Name, p.GetAddrIPv4(), p.Port, peerHash, percent)
+            fmt.Printf("%-20s (%s:%d)\t%x\t(%.2f%% of keys)\n", *p.Name, p.AddrIPv4, p.Port, peerHash, percent)
 
             prev = p
         }

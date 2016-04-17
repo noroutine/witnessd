@@ -3,10 +3,11 @@ package cluster
 
 import (
     "net"
-    "github.com/noroutine/bonjour"
     "github.com/reusee/mmh3"
     "math/big"
     "sort"
+    "strings"
+    "strconv"
 )
 
 const hash_byte_len = 16        // 128 / 8
@@ -17,16 +18,52 @@ type Peer struct {
     HostName *string
     Port int
     Group *string
-
-    entry *bonjour.ServiceEntry
+    AddrIPv4 net.IP
+    AddrIPv6 net.IP
+    Text []string
 }
 
-func (p *Peer) GetAddrIPv4() net.IP {
-    return p.entry.AddrIPv4
+type Partition struct {
+    Name string
 }
 
-func (p *Peer) GetAddrIPv6() net.IP {
-    return p.entry.AddrIPv6
+func (p *Peer) Clone() *Peer {
+    return &Peer{
+        Domain: p.Domain,
+        Name: p.Name,
+        HostName: p.HostName,
+        Port: p.Port,
+        Group: p.Group,
+        AddrIPv4: p.AddrIPv4,
+        AddrIPv6: p.AddrIPv6,
+        Text: p.Text,
+    }
+}
+
+func (p *Peer) GetPartitions() int {
+    partitionsValue := p.getText(partitionsKey)
+    if partitionsValue == nil {
+        return 1
+    } else {
+        partitions, err := strconv.Atoi(*partitionsValue)
+        if err != nil {
+            return 1
+        } else {
+            return partitions
+        }
+    }
+}
+
+func (p *Peer) getText(key string) *string {
+    ketEq := key + "="
+    for _, s := range p.Text {
+        if strings.HasPrefix(s, ketEq) {
+            value := strings.TrimPrefix(s, ketEq)
+            return &value
+        }
+    }
+
+    return nil
 }
 
 func (p *Peer) Hash() []byte {
