@@ -104,7 +104,7 @@ func main() {
         repl.EmptyHandler = nil
     }
 
-    repl.Register("peers", func(args []string) {
+    repl.Register("nodes", func(args []string) {
         if node.Group == nil {
             fmt.Println("You are not a member of any group, use 'join'")
             return
@@ -114,6 +114,7 @@ func main() {
             node.DiscoverPeers()
         }
 
+        fmt.Printf("Nodes in group %s:\n", *node.Group)
         for _, p := range cl.Peers() {
             fmt.Printf("%-20s (%s:%d)\n", *p.Name, p.AddrIPv4, p.Port)
         }
@@ -140,7 +141,7 @@ func main() {
             0xFF, 0xFF,
         })
 
-        fmt.Printf("Your peers in group %s:\n", *node.Group)
+        fmt.Printf("Partitions in group %s:\n", *node.Group)
         partitions := cl.Partitions()
         prev := partitions[len(partitions) - 1]
 
