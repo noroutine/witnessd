@@ -8,11 +8,13 @@ import (
     "github.com/noroutine/bonjour"
     "github.com/reusee/mmh3"
     "strconv"
+    "net"
 )
 
 type Node struct {
     Domain *string
     Name *string
+    Bind *net.Interface
     Port int
     Group *string
     server *bonjour.Server
@@ -38,6 +40,7 @@ func NewNode(domain string, name string) *Node {
     return &Node{
         Domain:         &domain,
         Name:           &name,
+        Bind:           nil,
         Port:           DefaultPort,
         Group:          nil,
         server:         nil,
@@ -156,7 +159,7 @@ func (node *Node) IsDiscoveryActive() bool {
 func (node *Node) AnnouncePresence() {
     // Run registration (blocking call)
     if node.server == nil {
-        s, err := bonjour.Register(*node.Name, ServiceType, "", node.Port, node.getNodeText(), nil)
+        s, err := bonjour.Register(*node.Name, ServiceType, "", node.Port, node.getNodeText(), node.Bind)
         if err != nil {
             log.Fatalln(err.Error())
         } else {
