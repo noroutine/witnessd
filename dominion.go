@@ -29,15 +29,15 @@ type Options struct {
 func main() {
 
     opts := Options{}
-    flag.StringVar(&opts.bind, "bind", "lo0", "interface to use")
+    flag.StringVar(&opts.bind, "bind", "127.0.0.1", "IP address to use")
     flag.IntVar(&opts.port, "port", cluster.DefaultPort, "client API port")
     flag.IntVar(&opts.partitions, "partitions", cluster.DefaultPartitions, "amount of storage partitions")
     flag.StringVar(&opts.name, "name", "", "name of the player")
     flag.StringVar(&opts.join, "join", "", "name of the group of the node")
     flag.Parse()
 
-    if _, err := net.InterfaceByName(opts.bind); err != nil {
-        fmt.Printf("Invalid inteface: %v\n", opts.bind)
+    if net.ParseIP(opts.bind) == nil {
+        fmt.Printf("Invalid address: %v\n", opts.bind)
         os.Exit(42)
     }
 
@@ -80,7 +80,7 @@ func main() {
     }()
 
     node := cluster.NewNode("local.", opts.name)
-    node.Bind, _ = net.InterfaceByName(opts.bind)
+    node.Bind = opts.bind
     node.Port = opts.port
     node.Group = &opts.join
 
