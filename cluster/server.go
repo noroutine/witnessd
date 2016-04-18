@@ -28,12 +28,12 @@ type Server struct {
 func NewServer(ip4 net.IP, ip6 net.IP, port int, r Router) *Server {
     l4, err := net.ListenUDP("udp4", &net.UDPAddr{ IP: ip4, Port: port })
     if err != nil {
-        log.Fatal(err)
+        log.Println(err)
     }
 
     l6, err := net.ListenUDP("udp6", &net.UDPAddr{ IP: ip6, Port: port })
     if err != nil {
-        log.Fatal(err)
+        log.Println(err)
     }
 
     return &Server{
