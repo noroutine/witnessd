@@ -47,7 +47,7 @@ func NewVia(node *Node, partitions int) (c *Cluster, err error) {
 func (c *Cluster) Connect() {
     // start listening on the DHT
     c.Name = *c.proxy.Group
-    c.Server = NewServer(net.ParseIP(c.proxy.Bind), nil, c.proxy.Port, c)
+    c.Server = NewServer(c.proxy.Port, c)
     c.Server.Start()
 }
 
