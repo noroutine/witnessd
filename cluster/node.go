@@ -32,7 +32,7 @@ type Data struct {
 
 const ServiceType = "_dominion._tcp"
 const DefaultPort = 9999
-const browseWindow = 200 * time.Millisecond
+const browseWindow = 500 * time.Millisecond
 const discoveryInterval = 5 * time.Second
 const groupKey = "group"
 
