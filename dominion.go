@@ -63,9 +63,6 @@ func main() {
         os.Exit(42)
     }
 
-    client := protocol.NewClient(fmt.Sprintf(":%d", opts.port), opts.name)
-    go client.Serve()
-
     repl := cli.New()
     repl.Description = description
     repl.Prompt = opts.name + "> "
@@ -91,6 +88,9 @@ func main() {
     if err != nil {
         log.Fatal(fmt.Sprintln("Cannot start cluster", err))
     }
+
+    client := protocol.NewClient(fmt.Sprintf(":%d", opts.port), node, cl)
+    go client.Serve()
 
     go func() {
         for {
@@ -279,8 +279,6 @@ func main() {
             name := args[0]
             fmt.Println("You are now", name)
             repl.Prompt = name + "> "
-            client.PlayerID = name
-            cl.Disconnect()
             node.AnnounceName(name)
         } else {
             fmt.Println(*node.Name)
