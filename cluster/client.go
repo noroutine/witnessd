@@ -10,7 +10,7 @@ type Client struct {
 }
 
 func NewClient(domain string, name string, group string, partitions int, bind string, port int) (*Client, error) {
-    node := NewNode("local.", name)
+    node := NewNode(domain, name)
     node.Bind = bind
     node.Port = port
     node.Group = &group
