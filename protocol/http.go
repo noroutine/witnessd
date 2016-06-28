@@ -9,21 +9,21 @@ import (
     "bytes"
 )
 
-type Client struct {
+type HttpClient struct {
     Address string
     node    *cluster.Node
     cl      *cluster.Cluster
 }
 
-func NewClient(address string, node *cluster.Node, cluster *cluster.Cluster) *Client {
-    return &Client{
+func NewHttpClient(address string, client *cluster.Client) *HttpClient {
+    return &HttpClient{
         Address:  address,
-        node: node,
-        cl: cluster,
+        node: client.Node,
+        cl: client.Cluster,
     }
 }
 
-func (client *Client) Serve() {
+func (client *HttpClient) Serve() {
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         log.Printf("GET %s", html.EscapeString(r.URL.Path))
         fmt.Fprintf(w, "Hello from %s\n", html.EscapeString(*client.node.Name))
