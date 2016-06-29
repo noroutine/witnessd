@@ -4,6 +4,8 @@ import (
     "log"
 )
 
+const MaxBlockSize = 0x7FFF
+
 type Client struct {
     Node    *Node
     Cluster *Cluster
@@ -79,6 +81,10 @@ func (client *Client) Load(key []byte, consistencyLevel ConsistencyLevel) ([]byt
 }
 
 func (client *Client) Store(key []byte, data []byte, consistencyLevel ConsistencyLevel) int {
+    if len(data) > MaxBlockSize {
+        // load is limited to block size
+        return STORE_ERROR
+    }
     return client.Cluster.Store(key, data, consistencyLevel)
 }
 
