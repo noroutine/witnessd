@@ -4,7 +4,7 @@ import (
     "log"
 )
 
-const BlockSize = 1024
+const BlockSize = 512
 
 type Client struct {
     Node    *Node
@@ -22,13 +22,16 @@ func NewClient(domain string, name string, group string, partitions int, bind st
 
     cluster, err := NewVia(node, partitions)
 
+    if err == nil {
+        cluster.Connect()
+    }
+
     go func() {
         for {
             select {
             case peer := <- node.Joined:
                 if *peer.Name == *node.Name {
                     // stupid but anyways: once I notice I joined, I connect to cluster :D
-                    cluster.Connect()
                 }
                 log.Printf("%s joined with %d partitions", *peer.Name, peer.Partitions)
             case peer := <- node.Left:
