@@ -4,6 +4,14 @@ import (
     "log"
 )
 
+/*
+See http://stackoverflow.com/questions/900697/how-to-find-the-largest-udp-packet-i-can-send-without-fragmenting
+
+Empirically tested up to 6000 on loopback interface, however real-network
+testing was not done
+
+Limiting block size to 512 to guarantee packet delivery
+ */
 const BlockSize = 512
 
 type Client struct {
