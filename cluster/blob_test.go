@@ -11,7 +11,7 @@ import (
 var client1, client2, client3 *Client
 
 func TestMain(m *testing.M) {
-    client1, client2, client3 = startTestCluster()
+    client1, client2, client3, _, _ = startTestCluster()
     flag.Parse()
     os.Exit(m.Run())
 }
@@ -84,7 +84,7 @@ func TestBlob_WriteByte(t *testing.T) {
     }
 }
 
-func TestBlob_Write(t *testing.T) {
+func TestBlob_WriteSmall(t *testing.T) {
 
     blob1 := client1.OpenBlob([]byte("test"))
 
@@ -117,7 +117,7 @@ func TestBlob_Write(t *testing.T) {
     }
 }
 
-func TestBlob_Write2(t *testing.T) {
+func TestBlob_WriteLarge(t *testing.T) {
 
     blob1 := client1.OpenBlob([]byte("test"))
 
@@ -175,15 +175,21 @@ func TestBlob_Write2(t *testing.T) {
 }
 
 
-func startTestCluster() (*Client, *Client, *Client) {
+func startTestCluster() (*Client, *Client, *Client, *Client, *Client) {
     client1, err := NewClient(
-        "local.", "client1", "test", 127, "127.0.0.1", 9996)
+        "local.", "node1", "test", 127, "127.0.0.1", 9991)
 
     client2, err := NewClient(
-        "local.", "client2", "test", 127, "127.0.0.1", 9997)
+        "local.", "node2", "test", 127, "127.0.0.1", 9992)
 
     client3, err := NewClient(
-        "local.", "client3", "test", 127, "127.0.0.1", 9998)
+        "local.", "node3", "test", 127, "127.0.0.1", 9993)
+
+    client4, err := NewClient(
+        "local.", "node4", "test", 127, "127.0.0.1", 9994)
+
+    client5, err := NewClient(
+        "local.", "node5", "test", 127, "127.0.0.1", 9995)
 
     if err != nil {
         log.Fatal("Error creating client", err)
@@ -192,5 +198,5 @@ func startTestCluster() (*Client, *Client, *Client) {
     log.Println("Sleeping 11 seconds")
     time.Sleep(11 * time.Second)
 
-    return client1, client2, client3
+    return client1, client2, client3, client4, client5
 }
