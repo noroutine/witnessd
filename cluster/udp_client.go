@@ -27,7 +27,7 @@ func (c *UdpClient) Send(m *Message) error {
     raw := Marshall(m)
     w, err := c.ipv4conn.Write(raw)
     if w < len(raw) || err != nil {
-        log.Println("error writing message")
+        log.Println("error writing message", w, len(raw), err)
     }
     return err
 }

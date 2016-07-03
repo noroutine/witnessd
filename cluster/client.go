@@ -4,7 +4,7 @@ import (
     "log"
 )
 
-const MaxBlockSize = 0x7FFF
+const BlockSize = 1024
 
 type Client struct {
     Node    *Node
@@ -81,7 +81,7 @@ func (client *Client) Load(key []byte, consistencyLevel ConsistencyLevel) ([]byt
 }
 
 func (client *Client) Store(key []byte, data []byte, consistencyLevel ConsistencyLevel) int {
-    if len(data) > MaxBlockSize {
+    if len(data) > BlockSize {
         // load is limited to block size
         return STORE_ERROR
     }
@@ -93,7 +93,7 @@ func (client *Client) KeyNodes(key []byte, consistencyLevel ConsistencyLevel) []
 }
 
 func (client *Client) DiscoverPeers() []*Peer {
-    if (! client.Node.IsDiscoveryActive()) {
+    if (! client.Node.IsDiscoveryActive() || len(client.Node.Peers) == 0) {
         client.Node.DiscoverPeers()
     }
 
@@ -101,7 +101,7 @@ func (client *Client) DiscoverPeers() []*Peer {
 }
 
 func (client *Client) DiscoverGroups() map[string]Data {
-    if (! client.Node.IsDiscoveryActive()) {
+    if (! client.Node.IsDiscoveryActive() || len(client.Node.Peers) == 0) {
         client.Node.DiscoverPeers()
     }
 
@@ -109,7 +109,7 @@ func (client *Client) DiscoverGroups() map[string]Data {
 }
 
 func (client *Client) Partitions() []*PeerPartition {
-    if (! client.Node.IsDiscoveryActive()) {
+    if (! client.Node.IsDiscoveryActive() || len(client.Node.Peers) == 0) {
         client.Node.DiscoverPeers()
     }
 
