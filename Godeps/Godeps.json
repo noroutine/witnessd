@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/noroutine/dominion",
-	"GoVersion": "go1.6",
-	"GodepVersion": "v60",
+	"GoVersion": "go1.10",
+	"GodepVersion": "v80",
 	"Deps": [
 		{
 			"ImportPath": "github.com/miekg/dns",
@@ -24,16 +24,24 @@
 			"Rev": "64b85163255bbb6af4f0d0eab61ecdda7ea7cd96"
 		},
 		{
+			"ImportPath": "golang.org/x/net/bpf",
+			"Rev": "0ed95abb35c445290478a5348a7b38bb154135fd"
+		},
+		{
 			"ImportPath": "golang.org/x/net/internal/iana",
-			"Rev": "6acef71eb69611914f7a30939ea9f6e194c78172"
+			"Rev": "0ed95abb35c445290478a5348a7b38bb154135fd"
+		},
+		{
+			"ImportPath": "golang.org/x/net/internal/socket",
+			"Rev": "0ed95abb35c445290478a5348a7b38bb154135fd"
 		},
 		{
 			"ImportPath": "golang.org/x/net/ipv4",
-			"Rev": "6acef71eb69611914f7a30939ea9f6e194c78172"
+			"Rev": "0ed95abb35c445290478a5348a7b38bb154135fd"
 		},
 		{
 			"ImportPath": "golang.org/x/net/ipv6",
-			"Rev": "6acef71eb69611914f7a30939ea9f6e194c78172"
+			"Rev": "0ed95abb35c445290478a5348a7b38bb154135fd"
 		}
 	]
 }
