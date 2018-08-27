@@ -1,37 +1,38 @@
 
 [![Go](https://img.shields.io/badge/Go-1.11-blue.svg)](https://golang.org/) [![Build Status](https://travis-ci.org/noroutine/witnessd.svg?branch=master)](https://travis-ci.org/noroutine/witnessd) [![Gitter](https://badges.gitter.im/turbovillains/dominion.svg)](https://gitter.im/turbovillains/dominion?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![Issue Count](https://codeclimate.com/github/noroutine/witnessd/badges/issue_count.svg)](https://codeclimate.com/github/noroutine/witnessd/issues)
 
-### Dominion Client
+### Witness Daemon
 
-Dominion client implements P2P protocol designed to allow 2-6 players enjoy the game without centralized server.
+Rule-based datacenter switchover daemon
 
-#### How to Use
-
-Write your own AI that communicates with this client or play yourself via CLI
-
-[More about the Dominion](https://en.wikipedia.org/wiki/Dominion_(card_game))
-
-#### Get Involved
+### Get Involved
 
     apt-get -qq install git build-essential libreadline-dev
-    go get github.com/noroutine/dominion
-    cd $GOPATH/src/github.com/noroutine/dominion
+    go get github.com/noroutine/witnessd
+    cd $GOPATH/src/github.com/noroutine/witnessd
     make
-    ./dominion --name Jack --join Game --port 9999
 
-#### Usage
+### Usage
 
-Just type
+In one terminal:
 
-    dominion --help
+    ./witnessd --name Jack --join Group --port 9999
+
+In another terminal:
+
+    ./witnessd --name Jill --join Group --port 9998
+
+For parameters just type:
+
+    witnessd --help
 
 So far it's not much
 
-    Usage of ./dominion:
+    Usage of ./witnessd:
       -join string
             name of the group of the node
       -name string
-            name of the player
+            name of the client
       -port int
             client API port (default 9999)
 
