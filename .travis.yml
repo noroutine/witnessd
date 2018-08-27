@@ -9,7 +9,7 @@ script:
 #  - make container push-container
 
 go:
-  - 1.6
+  - 1.11
 
 notifications:
   webhooks:
