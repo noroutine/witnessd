@@ -7,13 +7,13 @@ import (
     "strings"
     "flag"
     
-    "github.com/noroutine/dominion/protocol"
-    "github.com/noroutine/dominion/cluster"
+    "github.com/noroutine/witnessd/protocol"
+    "github.com/noroutine/witnessd/cluster"
     "net"
 )
 
 const version = "0.0.7"
-const description = "Dominion " + version
+const description = "witnessd " + version
 
 type Options struct {
     bind string

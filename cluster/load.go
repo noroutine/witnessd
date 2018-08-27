@@ -1,7 +1,7 @@
 package cluster
 
 import (
-    "github.com/noroutine/dominion/fsa"
+    "github.com/noroutine/witnessd/fsa"
     "errors"
     "log"
     "fmt"

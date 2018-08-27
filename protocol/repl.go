@@ -5,7 +5,7 @@ import (
     "os"
     "log"
     "fmt"
-    "github.com/noroutine/dominion/cluster"
+    "github.com/noroutine/witnessd/cluster"
     "math/big"
     "strings"
 )

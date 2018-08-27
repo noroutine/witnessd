@@ -4,6 +4,6 @@ import (
 	"testing"
 )
 
-func TestDominion(t *testing.T) {
+func TestWitnessDaemon(t *testing.T) {
 
 }

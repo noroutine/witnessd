@@ -7,17 +7,17 @@ all: dep build test
 build: dominion
 
 dep:
-	go get github.com/tools/godep
-	godep restore
+	go get github.com/Masterminds/glide
+	glide install
 
 dominion: dep *.go
-	godep go build
+	go build
 
 test:
-	godep go test -v ./...
+	go test -v ./...
 
 run:
-	godep go run
+	go run
 
 container: build
 	./prepare_docker.sh

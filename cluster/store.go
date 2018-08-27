@@ -5,7 +5,7 @@ import (
     "log"
     "fmt"
     "encoding/gob"
-    "github.com/noroutine/dominion/fsa"
+    "github.com/noroutine/witnessd/fsa"
     "github.com/reusee/mmh3"
     "bytes"
 )

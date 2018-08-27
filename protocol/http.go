@@ -5,7 +5,7 @@ import (
     "log"
     "fmt"
     "html"
-    "github.com/noroutine/dominion/cluster"
+    "github.com/noroutine/witnessd/cluster"
     "bytes"
 )
 

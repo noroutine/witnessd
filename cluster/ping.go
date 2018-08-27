@@ -6,7 +6,7 @@ import (
     "fmt"
     "time"
     "errors"
-    "github.com/noroutine/dominion/fsa"
+    "github.com/noroutine/witnessd/fsa"
 )
 
 const (
