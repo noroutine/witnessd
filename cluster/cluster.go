@@ -12,12 +12,10 @@ type Cluster struct {
     proxy *Node
     storage Storage
     Server *Server
-    Name string
     handlers *list.List
 }
 
 const DefaultPartitions = 127
-const partitionsKey string = "partitions"
 
 // Create a cluster instance with node as a communication proxy
 func NewVia(node *Node, partitions int) (c *Cluster, err error) {
@@ -25,14 +23,9 @@ func NewVia(node *Node, partitions int) (c *Cluster, err error) {
         return nil, errors.New("Node is not ready")
     }
 
-    node.SetText(map[string] string {
-        "partitions": fmt.Sprintf("%d", partitions),
-    })
-
     c = &Cluster{
         proxy: node,
         storage: NewInMemoryStorage(),
-        Name: *node.Group,
         handlers: list.New(),
     }
 
@@ -45,7 +38,6 @@ func NewVia(node *Node, partitions int) (c *Cluster, err error) {
 // Connects to the cluster and start responding for cluster communications
 func (c *Cluster) Connect() {
     // start listening on the DHT
-    c.Name = *c.proxy.Group
     c.Server = NewServer(c.proxy.Port, c)
     c.Server.Start()
 }

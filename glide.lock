@@ -1,6 +1,10 @@
-hash: d1359905a96b67c1567ca19585b3e8d8f65e70c67a862d24cbfb5c998b526443
-updated: 2018-08-27T12:03:29.001716685+02:00
+hash: f40931af827e0160a18f3a7f68b9001e572d8ba321fd537e3f45af2a5ef2e449
+updated: 2018-08-27T12:27:55.57460374+02:00
 imports:
+- name: github.com/hashicorp/serf
+  version: d6574a5bb1226678d7010325fb6c985db20ee458
+  subpackages:
+  - serf
 - name: github.com/miekg/dns
   version: cce6c130cdb92c752850880fd285bea1d64439dd
 - name: github.com/noroutine/bonjour

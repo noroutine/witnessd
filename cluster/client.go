@@ -26,7 +26,6 @@ func NewClient(domain string, name string, group string, partitions int, bind st
     node.Group = &group
 
     node.AnnouncePresence()
-    node.StartDiscovery()
 
     cluster, err := NewVia(node, partitions)
 
@@ -52,27 +51,6 @@ func NewClient(domain string, name string, group string, partitions int, bind st
         Node: node,
         Cluster: cluster,
     }, err
-}
-
-func (client *Client) Leave() {
-    client.Node.AnnounceGroup(nil)
-    client.Cluster.Disconnect()
-}
-
-func (client *Client) Join(group string) {
-    client.Node.AnnounceGroup(&group)
-}
-
-func (client *Client) GetGroup() string {
-    if client.Node.Group == nil {
-        panic("Not a member")
-    } else {
-        return *client.Node.Group
-    }
-}
-
-func (client *Client) IsMember() bool {
-    return client.Node.Group != nil
 }
 
 func (client *Client) SetName(name string) {
@@ -103,26 +81,26 @@ func (client *Client) KeyNodes(key []byte, consistencyLevel ConsistencyLevel) []
     return client.Cluster.HashNodes(key, consistencyLevel)
 }
 
-func (client *Client) DiscoverPeers() []*Peer {
-    if (! client.Node.IsDiscoveryActive() || len(client.Node.Peers) == 0) {
-        client.Node.DiscoverPeers()
-    }
-
-    return client.Cluster.Peers()
-}
-
-func (client *Client) DiscoverGroups() map[string]Data {
-    if (! client.Node.IsDiscoveryActive() || len(client.Node.Peers) == 0) {
-        client.Node.DiscoverPeers()
-    }
-
-    return client.Node.Groups;
-}
-
-func (client *Client) Partitions() []*PeerPartition {
-    if (! client.Node.IsDiscoveryActive() || len(client.Node.Peers) == 0) {
-        client.Node.DiscoverPeers()
-    }
-
-    return client.Cluster.Partitions()
-}
+//func (client *Client) DiscoverPeers() []*Peer {
+//    if (! client.Node.IsDiscoveryActive() || len(client.Node.Peers) == 0) {
+//        client.Node.DiscoverPeers()
+//    }
+//
+//    return client.Cluster.Peers()
+//}
+//
+//func (client *Client) DiscoverGroups() map[string]Data {
+//    if (! client.Node.IsDiscoveryActive() || len(client.Node.Peers) == 0) {
+//        client.Node.DiscoverPeers()
+//    }
+//
+//    return client.Node.Groups;
+//}
+//
+//func (client *Client) Partitions() []*PeerPartition {
+//    if (! client.Node.IsDiscoveryActive() || len(client.Node.Peers) == 0) {
+//        client.Node.DiscoverPeers()
+//    }
+//
+//    return client.Cluster.Partitions()
+//}
