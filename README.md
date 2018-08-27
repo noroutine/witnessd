@@ -1,5 +1,5 @@
 
-[![Go](https://img.shields.io/badge/Go-1.11-blue.svg)](https://golang.org/) [![Build Status](https://travis-ci.org/noroutine/witnessd.svg?branch=master)](https://travis-ci.org/noroutine/witnessd) [![Gitter](https://badges.gitter.im/turbovillains/dominion.svg)](https://gitter.im/turbovillains/dominion?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![Issue Count](https://codeclimate.com/github/noroutine/witnessd/badges/issue_count.svg)](https://codeclimate.com/github/noroutine/witnessd/issues)
+[![Go](https://img.shields.io/badge/Go-1.11-blue.svg)](https://golang.org/) [![Build Status](https://travis-ci.org/noroutine/witnessd.svg?branch=master)](https://travis-ci.org/noroutine/witnessd) [![Gitter](https://badges.gitter.im/turbovillains/dominion.svg)](https://gitter.im/turbovillains/dominion?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 ### Witness Daemon
 
