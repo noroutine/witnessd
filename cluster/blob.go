@@ -1,3 +1,5 @@
+// +build custer_ops
+
 package cluster
 
 import (

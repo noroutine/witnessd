@@ -1,6 +1,7 @@
 package cluster
 
 import (
+    "github.com/hashicorp/serf/serf"
     "github.com/noroutine/witnessd/fsa"
     "errors"
     "log"
@@ -51,16 +52,13 @@ func (a *BucketLoadActivity) Route(r *Request) (h Handler, err error) {
 }
 
 func (a *BucketLoadActivity) Handle(r *Request) error {
-    peer := string(r.Message.ReplyTo)
-    ackAddr, err := a.c.GetPeerAddr(peer)
-    if err != nil {
-        return errors.New(fmt.Sprintf("Cannot ack request from %s", peer))
-    }
+
+    query := r.Event.(*serf.Query)
 
     raw := bytes.NewBuffer(r.Message.Load)
     dec := gob.NewDecoder(raw)
     var dto StoreDTO
-    err = dec.Decode(&dto)
+    err := dec.Decode(&dto)
     if err != nil {
         log.Fatal("Decode error: ", err)
     }
@@ -68,7 +66,7 @@ func (a *BucketLoadActivity) Handle(r *Request) error {
     data, ok := a.c.storage.Get(dto.Key)
     if ok {
         // send ack
-        //log.Printf("Got request for key %s, sending ACK to %s", dto.Key, peer)
+        log.Printf("Got request for key %s, sending ACK to %s", dto.Key, r.Message.ReplyTo)
 
         raw := new(bytes.Buffer)
         enc := gob.NewEncoder(raw)
@@ -85,24 +83,25 @@ func (a *BucketLoadActivity) Handle(r *Request) error {
             panic("Load is too big")
         }
 
-        go a.c.Send(ackAddr, &Message{
+        query.Respond(Marshall(&Message{
             Version: 1,
             Type: LOAD,
             Operation: LOAD_OP_ACK,
             ReplyTo: *a.c.proxy.Name,
             Length: uint16(raw.Len()),
             Load: raw.Bytes(),
-        })
+        }))
+
     } else {
         // send NACK
-        //log.Printf("Got request for key %s, sending NACK to %s", dto.Key, peer)
-        go a.c.Send(ackAddr, &Message{
+        log.Printf("Got request for key %s, sending NACK to %s", dto.Key, r.Message.ReplyTo)
+        query.Respond(Marshall(&Message{
             Version: 1,
             Type: LOAD,
             Operation: LOAD_OP_NACK,
             ReplyTo: *a.c.proxy.Name,
             Length: 0,
-        })
+        }))
     }
 
     return nil
@@ -112,6 +111,8 @@ type LoadActivity struct {
     c *Cluster
     level ConsistencyLevel
     fsa *fsa.FSA
+    ackCh <-chan string
+    responseCh <-chan serf.NodeResponse
     acks int
     nacks int
     copies int
@@ -143,7 +144,7 @@ func (a *LoadActivity) Route(r *Request) (h Handler, err error)  {
 func (a *LoadActivity) Handle(r *Request) error {
     switch r.Message.Operation {
     case LOAD_OP_ACK:
-        //log.Println("Received ACK from ", r.Message.ReplyTo)
+        log.Println("Received ACK from ", r.Message.ReplyTo)
 
         raw := bytes.NewBuffer(r.Message.Load)
         dec := gob.NewDecoder(raw)
@@ -195,9 +196,6 @@ func (a *LoadActivity) Run(key []byte) {
                 panic("Load is too big")
             }
 
-            nodes := a.c.HashNodes(mmh3.Sum128(key), a.level)
-            a.copies = len(nodes)
-
             // send load command to all peers that should have a copy
             m := &Message{
                 Version: 1,
@@ -208,18 +206,55 @@ func (a *LoadActivity) Run(key []byte) {
                 Load: raw.Bytes(),
             }
 
+            nodes := a.c.HashNodes(mmh3.Sum128(key), a.level)
+            storageNodeNames := make([]string, len(nodes))
             for _, node := range nodes {
-                addr, err := a.c.GetPeerAddr(*node.Name)
-                if err != nil {
-                    log.Println("Cannot contact peer", *node.Name)
-                    a.Result <- LOAD_ERROR
-                    return LOAD_ERROR
-                }
-
-                go a.c.Send(addr, m)
+                storageNodeNames = append(storageNodeNames, node.Name)
             }
 
-            return LOAD_WAIT_ACK
+            a.acks = len(nodes)
+
+            serfInstance := a.c.proxy.server
+            queryParams := serfInstance.DefaultQueryParams()
+            queryParams.RequestAck = true
+
+            queryParams.FilterNodes = storageNodeNames
+
+            resp, err := a.c.SendQuery("load", m, queryParams)
+            if err != nil {
+                log.Printf("Error sending serf query while storing data: %s", err)
+                a.Result <- STORE_ERROR
+                return STORE_ERROR
+            }
+
+            // setup ack and response channels
+            a.ackCh = resp.AckCh()
+            a.responseCh = resp.ResponseCh()
+
+            var acks []string
+            var responses []string
+
+            for i := 0; i < a.acks; i++ {
+                select {
+                case a := <-a.ackCh:
+                    log.Printf("Received ACK %s", a)
+                    acks = append(acks, a)
+                    // TODO: match acks with stoarage node list to make sure we get acks from specific nodes
+                case r := <-a.responseCh:
+                    log.Printf("Received response %v", r)
+                    responses = append(responses, r.From)
+
+                case <-time.After(time.Second):
+                    log.Printf("Timeout waiting for ACKs")
+                    return LOAD_NO_ACK
+                }
+            }
+
+            a.Data = []byte("dummy")
+
+            go a.fsa.Send(LOAD_FULL_ACK)
+            return LOAD_FULL_ACK
+
         case state == LOAD_WAIT_ACK && input == LOAD_RCVD_ACK:
             a.acks++
 
@@ -270,7 +305,7 @@ func (a *LoadActivity) Run(key []byte) {
             a.Result <- LOAD_SUCCESS
             return LOAD_SUCCESS
         }
-        log.Println("Invalid automat")
+        log.Println("Invalid automaton")
         a.Result <- LOAD_ERROR
         return LOAD_ERROR
     }, fsa.TerminatesOn(LOAD_SUCCESS, LOAD_PARTIAL_SUCCESS, LOAD_FAILURE), timeoutFunc)

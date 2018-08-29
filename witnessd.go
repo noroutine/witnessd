@@ -20,7 +20,6 @@ type Options struct {
     port int
     partitions int
     name string
-    join string
     announce bool
 }
 
@@ -30,8 +29,7 @@ func main() {
     flag.StringVar(&opts.bind, "bind", "127.0.0.1", "IP address to use")
     flag.IntVar(&opts.port, "port", cluster.DefaultPort, "client API port")
     flag.IntVar(&opts.partitions, "partitions", cluster.DefaultPartitions, "amount of storage partitions")
-    flag.StringVar(&opts.name, "name", "", "name of the player")
-    flag.StringVar(&opts.join, "join", "", "name of the group of the node")
+    flag.StringVar(&opts.name, "name", "", "name of the client")
     flag.Parse()
 
     if net.ParseIP(opts.bind) == nil {
@@ -55,20 +53,14 @@ func main() {
         os.Exit(42)
     }
 
-    opts.join = strings.TrimSpace(opts.join)
-    if len(opts.join) == 0 {
-        fmt.Printf("Must provide group, see --help\n")
-        os.Exit(42)
-    }
-
-    clusterClient, err := cluster.NewClient("local.", opts.name, opts.join, opts.partitions, opts.bind, opts.port);
+    clusterClient, err := cluster.NewClient(opts.name, opts.partitions, opts.bind, opts.port, []string {});
 
     if err != nil {
         log.Fatal(fmt.Sprintln("Cannot start cluster", err))
     }
 
-    httpClient := protocol.NewHttpClient(fmt.Sprintf(":%d", opts.port), clusterClient)
-    go httpClient.Serve()
+    //httpClient := protocol.NewHttpClient(fmt.Sprintf(":%d", opts.port), clusterClient)
+    //go httpClient.Serve()
 
     replClient := protocol.NewReplClient(opts.name, description, clusterClient);
     replClient.Serve()

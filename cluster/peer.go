@@ -2,60 +2,39 @@
 package cluster
 
 import (
-    "net"
     "github.com/reusee/mmh3"
     "math/big"
+    "net"
     "sort"
-    "strings"
 )
 
 const hash_byte_len = 16        // 128 / 8
 
 type Peer struct {
-    Domain *string
-    Name *string
-    Partitions uint32
-    HostName *string
-    Port int
-    Group *string
-    AddrIPv4 net.IP
-    AddrIPv6 net.IP
-    Text []string
+    Name string
+    Partitions int
+    Port uint16
+    Addr net.IP
+    Tags map[string]string
 }
 
 type PeerPartition struct {
     Peer *Peer
-    Partition uint32
+    Partition int
 }
 
 func (p *Peer) Clone() *Peer {
     return &Peer{
-        Domain: p.Domain,
         Name: p.Name,
         Partitions: p.Partitions,
-        HostName: p.HostName,
         Port: p.Port,
-        Group: p.Group,
-        AddrIPv4: p.AddrIPv4,
-        AddrIPv6: p.AddrIPv6,
-        Text: p.Text,
+        Addr: p.Addr,
+        Tags: p.Tags,
     }
-}
-
-func (p *Peer) getText(key string) *string {
-    ketEq := key + "="
-    for _, s := range p.Text {
-        if strings.HasPrefix(s, ketEq) {
-            value := strings.TrimPrefix(s, ketEq)
-            return &value
-        }
-    }
-
-    return nil
 }
 
 func (p *PeerPartition) Hash() []byte {
-    return mmh3.Sum128(append([]byte(*p.Peer.Name),
+    return mmh3.Sum128(append([]byte(p.Peer.Name),
         byte(p.Partition >> 24),
         byte(p.Partition >> 16),
         byte(p.Partition >> 8),

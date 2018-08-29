@@ -2,12 +2,14 @@ package cluster
 
 import (
     "errors"
+    "github.com/hashicorp/serf/serf"
     "log"
     "fmt"
     "encoding/gob"
     "github.com/noroutine/witnessd/fsa"
     "github.com/reusee/mmh3"
     "bytes"
+    "time"
 )
 
 const (
@@ -53,31 +55,27 @@ func (a *BucketStoreActivity) Route(r *Request) (h Handler, err error) {
 
 func (a *BucketStoreActivity) Handle(r *Request) error {
 
-    peer := string(r.Message.ReplyTo)
-    ackAddr, err := a.c.GetPeerAddr(peer)
-    if err != nil {
-        return errors.New(fmt.Sprintf("Cannot ack request from %s", peer))
-    }
+    query := r.Event.(*serf.Query)
 
     raw := bytes.NewBuffer(r.Message.Load)
     dec := gob.NewDecoder(raw)
     var dto StoreDTO
-    err = dec.Decode(&dto)
+    err := dec.Decode(&dto)
     if err != nil {
         log.Fatal("Decode error: ", err)
     }
 
     a.c.storage.Put(dto.Key, dto.Value)
 
-    //log.Printf("Got %d bytes of data to store, sending ack to %s", r.Message.Length, peer)
-
-    go a.c.Send(ackAddr, &Message{
+    query.Respond(Marshall(&Message{
         Version: 1,
         Type: STORE,
         Operation: STORE_OP_ACK,
         ReplyTo: *a.c.proxy.Name,
         Length: 0,
-    })
+    }))
+
+    log.Printf("Got %d bytes of data to store", r.Message.Length)
 
     return nil
 }
@@ -86,6 +84,8 @@ type StoreActivity struct {
     c *Cluster
     level ConsistencyLevel
     fsa *fsa.FSA
+    ackCh <-chan string
+    responseCh <-chan serf.NodeResponse
     acks int
     Result chan int
 }
@@ -148,21 +148,51 @@ func (a *StoreActivity) Run(key, data []byte) {
             }
 
             nodes := a.c.HashNodes(mmh3.Sum128(key), a.level)
+            storageNodeNames := make([]string, len(nodes))
+            for _, node := range nodes {
+                storageNodeNames = append(storageNodeNames, node.Name)
+            }
 
             a.acks = len(nodes)
 
-            for _, node := range nodes {
-                addr, err := a.c.GetPeerAddr(*node.Name)
-                if err != nil {
-                    log.Println("Cannot contact peer", *node.Name)
-                    a.Result <- STORE_ERROR
-                    return STORE_ERROR
-                }
+            serfInstance := a.c.proxy.server
+            queryParams := serfInstance.DefaultQueryParams()
+            queryParams.RequestAck = true
 
-                go a.c.Send(addr, m)
+            queryParams.FilterNodes = storageNodeNames
+
+            resp, err := a.c.SendQuery("store", m, queryParams)
+            if err != nil {
+                log.Printf("Error sending serf query while storing data: %s", err)
+                a.Result <- STORE_ERROR
+                return STORE_ERROR
             }
 
-            return STORE_WAIT_ACK
+            // setup ack and response channels
+            a.ackCh = resp.AckCh()
+            a.responseCh = resp.ResponseCh()
+
+            var acks []string
+            var responses []string
+
+            for i := 0; i < a.acks; i++ {
+                select {
+                case a := <-a.ackCh:
+                    log.Printf("Received ACK %s", a)
+                    acks = append(acks, a)
+                    // TODO: match acks with stoarage node list to make sure we get acks from specific nodes
+                case r := <-a.responseCh:
+                    log.Printf("Received response %v", r)
+                    responses = append(responses, r.From)
+
+                case <-time.After(time.Second):
+                    log.Printf("Timeout waiting for ACKs")
+                    return STORE_NO_ACK
+                }
+            }
+
+            go a.fsa.Send(STORE_FULL_ACK)
+            return STORE_FULL_ACK
         case state == STORE_WAIT_ACK && input == STORE_RCVD_ACK:
             a.acks--
             if a.acks == 0 {
@@ -181,7 +211,7 @@ func (a *StoreActivity) Run(key, data []byte) {
             a.Result <- STORE_SUCCESS
             return STORE_SUCCESS
         }
-        log.Println("Invalid automat")
+        log.Println("Invalid automaton")
         a.Result <- STORE_ERROR
         return STORE_ERROR
     }, fsa.TerminatesOn(STORE_SUCCESS, STORE_PARTIAL_SUCCESS, STORE_FAILURE), fsa.NeverTimesOut())

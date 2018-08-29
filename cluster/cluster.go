@@ -2,20 +2,22 @@
 package cluster
 
 import (
+    "container/list"
     "errors"
     "fmt"
-    "net"
-    "container/list"
+	"github.com/hashicorp/serf/serf"
+	"net"
 )
 
 type Cluster struct {
     proxy *Node
     storage Storage
-    Server *Server
     handlers *list.List
+    shutdownCh chan int
 }
 
 const DefaultPartitions = 127
+const PartitionsTag = "partitions"
 
 // Create a cluster instance with node as a communication proxy
 func NewVia(node *Node, partitions int) (c *Cluster, err error) {
@@ -33,21 +35,6 @@ func NewVia(node *Node, partitions int) (c *Cluster, err error) {
     c.handlers.PushBack(NewBucketStoreActivity(c))
     c.handlers.PushBack(NewBucketLoadActivity(c))
     return c, nil
-}
-
-// Connects to the cluster and start responding for cluster communications
-func (c *Cluster) Connect() {
-    // start listening on the DHT
-    c.Server = NewServer(c.proxy.Port, c)
-    c.Server.Start()
-}
-
-// Disconnect from the cluster and stop responding to cluster communications
-func (c *Cluster) Disconnect() {
-    if c.Server != nil {
-        c.Server.Shutdown()
-        c.Server = nil
-    }
 }
 
 // Returns one primary node and as much consistently determined replication nodes as needed for meeting consistency level
@@ -97,76 +84,63 @@ func (c *Cluster) HashNodes(objectHash []byte, level ConsistencyLevel) []*Peer {
     return nodes
 }
 
-// Route cluster request to concrete handler, makes Cluster a Router
-func (c *Cluster) Route(r *Request) (h Handler, err error) {
-    for e := c.handlers.Front(); e != nil; e = e.Next() {
-        h, err := e.Value.(Router).Route(r)
-        if h != nil && err == nil {
-            return h, nil
-        }
-    }
-
-    return nil, errors.New("Not supported")
-}
-
 // Ping another cluster peer
 func (c *Cluster) Ping(peer string) int {
-    activity := NewPingActivity(c)
+   activity := NewPingActivity(c)
 
-    e := c.handlers.PushBack(activity)
-    defer c.handlers.Remove(e)
+   e := c.handlers.PushBack(activity)
+   defer c.handlers.Remove(e)
 
-    activity.Run(peer)
-    return <- activity.Result
+   activity.Run(peer)
+   return <- activity.Result
 }
 
 func (c *Cluster) Store(key, data []byte, level ConsistencyLevel) int {
-    activity := NewStoreActivity(c, c.AdjustedConsistencyLevel(level))
+   activity := NewStoreActivity(c, c.AdjustedConsistencyLevel(level))
 
-    e := c.handlers.PushBack(activity)
-    defer c.handlers.Remove(e)
+   e := c.handlers.PushBack(activity)
+   defer c.handlers.Remove(e)
 
-    activity.Run(key, data)
-    return <- activity.Result
+   activity.Run(key, data)
+   return <- activity.Result
 }
 
 func (c *Cluster) Load(key []byte, level ConsistencyLevel) ([]byte, int) {
-    adjustedLevel := c.AdjustedConsistencyLevel(level)
-    activity := NewLoadActivity(c, adjustedLevel)
+   adjustedLevel := c.AdjustedConsistencyLevel(level)
+   activity := NewLoadActivity(c, adjustedLevel)
 
-    e := c.handlers.PushBack(activity)
-    defer c.handlers.Remove(e)
+   e := c.handlers.PushBack(activity)
+   defer c.handlers.Remove(e)
 
-    activity.Run(key)
+   activity.Run(key)
 
-    data, result := activity.Data, <- activity.Result
+   data, result := activity.Data, <- activity.Result
 
-    if result == LOAD_PARTIAL_SUCCESS {
-        c.Store(key, data, adjustedLevel)
-    }
+   if result == LOAD_PARTIAL_SUCCESS {
+       c.Store(key, data, adjustedLevel)
+   }
 
-    return data, result
+   return data, result
 }
 
-// Send cluster message as UDP packet
-func (c *Cluster) Send(to *net.UDPAddr, m *Message) error {
-    udpCl, err := NewUdpClient(to)
-    if err != nil {
-        return err
-    }
+// Send cluster event
+func (c *Cluster) Send(name string, m *Message) error {
+    return c.proxy.server.UserEvent(name, Marshall(m), true)
+}
 
-    defer udpCl.Close()
-
-    return udpCl.Send(m)
+// Send cluster query
+func (c *Cluster) SendQuery(name string, m *Message, param *serf.QueryParam) (*serf.QueryResponse, error) {
+	return c.proxy.server.Query(name, Marshall(m), param)
 }
 
 func (c *Cluster) Partitions() []*PeerPartition {
+    c.proxy.DiscoverPeers()
     peersMap := c.proxy.Peers
     partitions := make([]*PeerPartition, 0, DefaultPartitions*len(peersMap))
 
     for _, p := range peersMap {
         pp := p.Clone()
-        for i := uint32(0); i < p.Partitions; i++ {
+        for i := 0; i < p.Partitions; i++ {
             partitions = append(partitions, &PeerPartition{
                 Peer: pp,
                 Partition: i,
@@ -179,6 +153,8 @@ func (c *Cluster) Partitions() []*PeerPartition {
 
 func (c *Cluster) Peers() []*Peer {
     // TODO: potential shared memory access
+    c.proxy.DiscoverPeers()
+
     peersMap := c.proxy.Peers
     peers := make([]*Peer, 0, len(peersMap))
 
@@ -198,14 +174,11 @@ func (c *Cluster) Size() int {
 }
 
 // Resolve cluster peer IP address by peer name
-func (c *Cluster) GetPeerAddr(peer string) (*net.UDPAddr, error) {
+func (c *Cluster) GetPeerAddr(peer string) (net.IP, error) {
     p, ok := c.proxy.Peers[peer]
     if !ok {
         return nil, fmt.Errorf("Peer not available: %s", peer)
     }
 
-    return &net.UDPAddr{
-        IP: p.AddrIPv4,
-        Port: p.Port,
-    }, nil
+    return p.Addr, nil
 }

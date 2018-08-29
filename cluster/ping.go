@@ -2,11 +2,10 @@
 package cluster
 
 import (
-    "log"
-    "fmt"
-    "time"
     "errors"
     "github.com/noroutine/witnessd/fsa"
+    "log"
+    "time"
 )
 
 const (
@@ -40,13 +39,11 @@ func (a *PongActivity) Route(r *Request) (h Handler, err error) {
 
 func (a *PongActivity) Handle(r *Request) error {
     peer := string(r.Message.Load)
-    pongAddr, err := a.c.GetPeerAddr(peer)
-    if err != nil {
-       return errors.New(fmt.Sprintf("Cannot pong peer %s", peer))
-    }
+
+    log.Printf("Received ping from %s", peer)
 
     // send pong back
-    go a.c.Send(pongAddr, &Message{
+    go a.c.Send("pong", &Message{
         Version: 1,
         Type: PING,
         Operation: 1,   // pong
@@ -99,15 +96,8 @@ func (a *PingActivity) Run(target string) {
     a.fsa = fsa.New(func(state, input int) int {
         switch{
         case state == PING_START && input == PING_START:
-            targetAddr, err := a.c.GetPeerAddr(target)
-            if err != nil {
-                log.Println("Cannot ping peer")
-                a.Result <- PING_ERROR
-                return PING_ERROR
-            }
-
             // send ping 
-            go a.c.Send(targetAddr, &Message{
+            go a.c.Send("ping", &Message{
                 Version: 1,
                 Type: PING,
                 Operation: 0,   // ping

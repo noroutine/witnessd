@@ -1,3 +1,5 @@
+// +build http_ui
+
 package protocol
 
 import (

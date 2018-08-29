@@ -43,9 +43,9 @@ func NewReplClient(name string, description string, clusterClient *cluster.Clien
             return
         }
 
-        fmt.Printf("Nodes in group %s:\n", clusterClient.GetGroup())
+        fmt.Printf("Nodes:\n", )
         for _, p := range clusterClient.DiscoverPeers() {
-            fmt.Printf("%-20s (%s:%d)\n", *p.Name, p.AddrIPv4, p.Port)
+            fmt.Printf("%-20s (%s:%d)\n", p.Name, p.Addr, p.Port)
         }
     })
 
@@ -66,7 +66,7 @@ func NewReplClient(name string, description string, clusterClient *cluster.Clien
             0xFF, 0xFF,
         })
 
-        fmt.Printf("Partitions in group %s:\n", clusterClient.GetGroup())
+        fmt.Printf("Partitions in cluster:\n")
         partitions := clusterClient.Partitions()
         prev := partitions[len(partitions) - 1]
 
@@ -82,38 +82,22 @@ func NewReplClient(name string, description string, clusterClient *cluster.Clien
 
             // fmt.Printf("%-20s %x\t(%.2f%% of keys)\n", fmt.Sprintf("%s.%d", *p.Peer.Name, p.Partition), partitionHash, percent)
 
-            byPeer[*p.Peer.Name] = byPeer[*p.Peer.Name] + percent
+            byPeer[p.Peer.Name] = byPeer[p.Peer.Name] + percent
 
             prev = p
         }
 
         for _, peer := range clusterClient.DiscoverPeers() {
-            fmt.Printf("%-20s %d\t(%.2f%% of keys)\n", *peer.Name, peer.Partitions, byPeer[*peer.Name])
+            fmt.Printf("%-20s %d\t(%.2f%% of keys)\n", peer.Name, peer.Partitions, byPeer[peer.Name])
         }
-    })
-
-    repl.Register("groups", func(args []string) {
-        for name, data := range clusterClient.DiscoverGroups() {
-            fmt.Printf("%s (%d members)\n", name, data.SeenMembers)
-        }
-    })
-
-    repl.Register("group", func(args []string) {
-        var group string
-        if (clusterClient.IsMember()) {
-            group = clusterClient.GetGroup()
-        } else {
-            group = "None"
-        }
-        fmt.Println(group)
     })
 
     repl.Register("join", func(args []string) {
-        var group string
+        var clusterAddr string
         if len(args) > 0 {
-            group = args[0]
-            fmt.Println("Your group is now", group)
-            clusterClient.Join(group)
+            clusterAddr = args[0]
+            fmt.Println("Joining cluster ", clusterAddr)
+            clusterClient.Join([]string {clusterAddr})
         } else {
             fmt.Println("Provide group name, discover with 'groups")
         }
@@ -135,50 +119,50 @@ func NewReplClient(name string, description string, clusterClient *cluster.Clien
 
         nodes := clusterClient.KeyNodes(obj.Hash(), cluster.ConsistencyLevelTwo)
         primary, secondary := nodes[0], nodes[1]
-        fmt.Printf("Key %s stored by peers:\n  primary  : %s\n  secondary: %s\n", args[0], *primary.Name, *secondary.Name)
+        fmt.Printf("Key %s stored by peers:\n  primary  : %s\n  secondary: %s\n", args[0], primary.Name, secondary.Name)
     })
 
     repl.Register("store", func(args []string) {
-        if len(args) < 2 {
-            fmt.Println("Usage: store <key> <value>")
-            return
-        }
+       if len(args) < 2 {
+           fmt.Println("Usage: store <key> <value>")
+           return
+       }
 
-        switch clusterClient.Store([]byte(args[0]), []byte(args[1]), cluster.ConsistencyLevelTwo) {
-        case cluster.STORE_SUCCESS: fmt.Println("Success")
-        case cluster.STORE_PARTIAL_SUCCESS: fmt.Println("Partial success")
-        case cluster.STORE_ERROR: fmt.Println("Error")
-        case cluster.STORE_FAILURE: fmt.Println("Failure")
-        }
+       switch clusterClient.Store([]byte(args[0]), []byte(args[1]), cluster.ConsistencyLevelTwo) {
+       case cluster.STORE_SUCCESS: fmt.Println("Success")
+       case cluster.STORE_PARTIAL_SUCCESS: fmt.Println("Partial success")
+       case cluster.STORE_ERROR: fmt.Println("Error")
+       case cluster.STORE_FAILURE: fmt.Println("Failure")
+       }
     })
 
     repl.Register("load", func(args []string) {
-        if len(args) < 1 {
-            fmt.Println("Usage: load <key>")
-            return
-        }
+       if len(args) < 1 {
+           fmt.Println("Usage: load <key>")
+           return
+       }
 
-        data, result := clusterClient.Load([]byte(args[0]), cluster.ConsistencyLevelTwo)
+       data, result := clusterClient.Load([]byte(args[0]), cluster.ConsistencyLevelTwo)
 
-        switch result {
-        case cluster.LOAD_SUCCESS: fmt.Println("Success:", string(data))
-        case cluster.LOAD_PARTIAL_SUCCESS: fmt.Println("Partial success:", string(data))
-        case cluster.LOAD_ERROR: fmt.Println("Error")
-        case cluster.LOAD_FAILURE: fmt.Println("Failure")
-        }
+       switch result {
+       case cluster.LOAD_SUCCESS: fmt.Println("Success:", string(data))
+       case cluster.LOAD_PARTIAL_SUCCESS: fmt.Println("Partial success:", string(data))
+       case cluster.LOAD_ERROR: fmt.Println("Error")
+       case cluster.LOAD_FAILURE: fmt.Println("Failure")
+       }
     })
 
     repl.Register("ping", func(args []string) {
-        if len(args) < 1 {
-            fmt.Println("Usage: ping <peer>")
-            return
-        }
+       if len(args) < 1 {
+           fmt.Println("Usage: ping <peer>")
+           return
+       }
 
-        switch clusterClient.Ping(args[0]) {
-        case cluster.PING_SUCCESS: fmt.Println("Success")
-        case cluster.PING_ERROR: fmt.Println("Error")
-        case cluster.PING_TIMEOUT: fmt.Println("Timeout")
-        }
+       switch clusterClient.Ping(args[0]) {
+       case cluster.PING_SUCCESS: fmt.Println("Success")
+       case cluster.PING_ERROR: fmt.Println("Error")
+       case cluster.PING_TIMEOUT: fmt.Println("Timeout")
+       }
     })
 
     repl.Register("help", func(args []string) {
@@ -186,14 +170,7 @@ func NewReplClient(name string, description string, clusterClient *cluster.Clien
     })
 
     repl.Register("name", func(args []string) {
-        if len(args) > 0 {
-            name := args[0]
-            fmt.Println("You are now", name)
-            repl.Prompt = name + "> "
-            clusterClient.SetName(name)
-        } else {
-            fmt.Println(clusterClient.GetName())
-        }
+        fmt.Println(clusterClient.GetName())
     })
 
     return &ReplClient{
